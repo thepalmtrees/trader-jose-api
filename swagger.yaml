@@ -1,0 +1,18 @@
+tags:
+  - name: Trader jose
+    description: Brand new Trader Joe API
+
+paths:
+  # [GET] tvl
+  /api/v1/tvl:
+    get:
+      tags:
+        - tvl
+      summary: get the TVL
+      responses:
+        200:
+          description: 'OK'
+
+schemes:
+  - https
+  - http
