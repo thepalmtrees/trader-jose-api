@@ -9,10 +9,10 @@ class IndexRoute implements Routes {
   }
 
   private initializeRoutes() {
-    this.router.get('/', (req, res, next) => {
+    this.router.get('/', (req, res) => {
       res.status(200).send('Hello /');
     });
-    this.router.get('/status', (req, res, next) => {
+    this.router.get('/status', (req, res) => {
       res.status(200).json({ status: 'OK' });
     });
   }
