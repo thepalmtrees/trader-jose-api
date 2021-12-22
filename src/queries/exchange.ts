@@ -101,3 +101,25 @@ export const avaxPriceQuery = gql`
   }
   ${bundleFields}
 `;
+
+export const dayDataFieldsQuery = gql`
+  fragment dayDataFields on DayData {
+    id
+    date
+    volumeAVAX
+    volumeUSD
+    untrackedVolume
+    liquidityAVAX
+    liquidityUSD
+    txCount
+  }
+`;
+
+export const dayDatasQuery = gql`
+  query dayDatasQuery($first: Int! = 1, $date: Int! = 0) {
+    dayDatas(first: $first, orderBy: date, orderDirection: desc) {
+      ...dayDataFields
+    }
+  }
+  ${dayDataFieldsQuery}
+`;
