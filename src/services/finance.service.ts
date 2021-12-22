@@ -5,7 +5,7 @@ import { GraphQLClient } from 'graphql-request';
 
 import { startOfMinute, subDays } from 'date-fns';
 
-import { barQuery, blockQuery, factoryQuery, factoryTimeTravelQuery, tokenQuery, avaxPriceQuery } from '../queries/exchange';
+import { barQuery, blockQuery, factoryQuery, factoryTimeTravelQuery, tokenQuery, avaxPriceQuery, dayDatasQuery } from '../queries/exchange';
 
 const FEE_RATE = 0.0005;
 
@@ -57,7 +57,9 @@ class FinanceService {
   }
 
   public async getTVL(): Promise<number> {
-    const tvl = 5;
+    const { dayDatas } = await this.exchangeClient.request(dayDatasQuery);
+
+    const tvl = parseFloat(dayDatas[0].liquidityUSD);
 
     return tvl;
   }
