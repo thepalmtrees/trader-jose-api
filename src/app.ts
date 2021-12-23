@@ -13,6 +13,7 @@ import swaggerUi from 'swagger-ui-express';
 import { Routes } from '@interfaces/routes.interface';
 import errorMiddleware from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
+import Moralis from 'moralis/node';
 
 class App {
   public app: express.Application;
@@ -28,6 +29,7 @@ class App {
     this.initializeRoutes(routes);
     this.initializeSwagger();
     this.initializeErrorHandling();
+    this.initializeMoralis();
   }
 
   public listen() {
@@ -41,6 +43,14 @@ class App {
 
   public getServer() {
     return this.app;
+  }
+
+  private initializeMoralis() {
+    Moralis.start({
+      serverUrl: process.env.MORALIS_SERVER_URL,
+      appId: process.env.MORALIS_APP_ID,
+      masterKey: process.env.MORALIS_MASTER_KEY,
+    });
   }
 
   private initializeMiddlewares() {
