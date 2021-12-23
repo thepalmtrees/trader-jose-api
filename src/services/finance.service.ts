@@ -1,7 +1,8 @@
-import { FACTORY_ADDRESS, JOE_TOKEN_ADDRESS, GRAPH_BAR_URI, GRAPH_BLOCKS_URI, GRAPH_EXCHANGE_URI } from '../configs/index';
+import { FACTORY_ADDRESS, JOE_TOKEN_ADDRESS, GRAPH_BAR_URI, GRAPH_BLOCKS_URI, GRAPH_EXCHANGE_URI, BURN_ADDRESS } from '../configs/index';
 import { logger } from '@utils/logger';
 
 import { GraphQLClient } from 'graphql-request';
+import BN from 'bn.js';
 import Moralis from 'moralis/node';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { startOfMinute, subDays } from 'date-fns';
@@ -15,6 +16,14 @@ const FEE_RATE = 0.0005;
 type TokenPriceRequestParams = {
   chain: 'avalanche';
   address: string;
+};
+
+type RunContractParams = {
+  chain: 'avalanche';
+  address: string;
+  function_name: string;
+  abi: any;
+  params?: any;
 };
 
 class FinanceService {
@@ -64,6 +73,19 @@ class FinanceService {
     return factoryData?.factory.volumeUSD;
   }
 
+  private async getBalanceOf(address: string): Promise<string> {
+    const balanceOfFn: RunContractParams = {
+      chain: 'avalanche',
+      address: JOE_TOKEN_ADDRESS,
+      function_name: 'balanceOf',
+      abi: JoeContractABI,
+      params: { account: address },
+    };
+    const balance = await Moralis.Web3API.native.runContractFunction(balanceOfFn);
+
+    return balance;
+  }
+
   public async getTVL(): Promise<number> {
     const { dayDatas } = await this.exchangeClient.request(dayDatasQuery);
 
@@ -97,8 +119,7 @@ class FinanceService {
   }
 
   public async getMaxSupply(): Promise<string> {
-    // runContractFunction function was complaining because of typing issues.
-    const maxSupplyFn: { chain: 'avalanche' } & any = {
+    const maxSupplyFn: RunContractParams = {
       chain: 'avalanche',
       address: JOE_TOKEN_ADDRESS,
       function_name: 'maxSupply',
@@ -124,6 +145,23 @@ class FinanceService {
     const price = await Moralis.Web3API.token.getTokenPrice(options);
     logger.info(`For address ${tokenAddress} got price from ${price.exchangeName}`);
     return price.usdPrice * Math.pow(10, 18);
+  }
+
+  public async getTotalSupply(): Promise<string> {
+    const burned = await this.getBalanceOf(BURN_ADDRESS);
+
+    const totalSupplyFn: RunContractParams = {
+      chain: 'avalanche',
+      address: JOE_TOKEN_ADDRESS,
+      function_name: 'totalSupply',
+      abi: JoeContractABI,
+    };
+
+    const supply = await Moralis.Web3API.native.runContractFunction(totalSupplyFn);
+
+    const totalSupply = new BN(supply).sub(new BN(burned));
+
+    return totalSupply.toString();
   }
 }
 
