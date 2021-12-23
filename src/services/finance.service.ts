@@ -7,12 +7,14 @@ import {
   BURN_ADDRESS,
   TEAM_TREASURY_WALLETS,
   BN_1E18,
+  SUPPLY_BORROW_ADDRESS,
 } from '../configs/index';
 import { logger } from '@utils/logger';
 
 import { GraphQLClient } from 'graphql-request';
 import BN from 'bn.js';
 import Moralis from 'moralis/node';
+import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { startOfMinute, subDays } from 'date-fns';
 
@@ -193,6 +195,36 @@ class FinanceService {
     const adjustedSupply = new BN(circulatingSupply).div(BN_1E18);
 
     return adjustedSupply.toString();
+  }
+
+  private async getLendingState(): Promise<{ totalSupply: string; totalBorrow: string }> {
+    const totalSupplyAndBorrowFn: RunContractParams = {
+      chain: 'avalanche',
+      address: SUPPLY_BORROW_ADDRESS,
+      function_name: 'getTotalSupplyAndTotalBorrow',
+      abi: TotalSupplyAndBorrowABI,
+    };
+
+    const result = await Moralis.Web3API.native.runContractFunction(totalSupplyAndBorrowFn);
+    const totalSupply = result[0];
+    const totalBorrow = result[1];
+
+    return {
+      totalSupply,
+      totalBorrow,
+    };
+  }
+
+  public async getLendingTotalSupply(): Promise<string> {
+    const lendingState = await this.getLendingState();
+
+    return lendingState.totalSupply;
+  }
+
+  public async getLendingTotalBorrow(): Promise<string> {
+    const lendingState = await this.getLendingState();
+
+    return lendingState.totalBorrow;
   }
 }
 
