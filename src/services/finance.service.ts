@@ -3,13 +3,19 @@ import { logger } from '@utils/logger';
 
 import { GraphQLClient } from 'graphql-request';
 import Moralis from 'moralis/node';
-import BN from 'bn.js';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { startOfMinute, subDays } from 'date-fns';
 
 import { barQuery, blockQuery, factoryQuery, factoryTimeTravelQuery, tokenQuery, avaxPriceQuery, dayDatasQuery } from '../queries/exchange';
 
+const tokenList = require('../utils/tokenList.json');
+
 const FEE_RATE = 0.0005;
+
+type TokenPriceRequestParams = {
+  chain: 'avalanche';
+  address: string;
+};
 
 class FinanceService {
   blocksClient = new GraphQLClient(GRAPH_BLOCKS_URI, { headers: {} });
@@ -102,6 +108,22 @@ class FinanceService {
     const maxSupply = await Moralis.Web3API.native.runContractFunction(maxSupplyFn);
 
     return maxSupply;
+  }
+
+  public async getPriceUSD(requestedTokenAddress: string) {
+    let tokenAddress;
+    if (requestedTokenAddress in tokenList) {
+      tokenAddress = tokenList[requestedTokenAddress];
+    } else {
+      tokenAddress = requestedTokenAddress;
+    }
+    const options: TokenPriceRequestParams = {
+      address: tokenAddress,
+      chain: 'avalanche',
+    };
+    const price = await Moralis.Web3API.token.getTokenPrice(options);
+    logger.info(`For address ${tokenAddress} got price from ${price.exchangeName}`);
+    return price.usdPrice * Math.pow(10, 18);
   }
 }
 
