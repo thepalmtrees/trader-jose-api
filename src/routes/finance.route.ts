@@ -21,7 +21,7 @@ class FinanceRoute implements Routes {
 
     this.router.get('/supply/circulating', methodNotImplemented);
     this.router.get('/supply/circulating-adjusted', methodNotImplemented);
-    this.router.get('/supply/total', methodNotImplemented);
+    this.router.get('/supply/total', this.financeController.getTotalSupply);
     this.router.get('/supply/max', this.financeController.getMaxSupply);
     this.router.get('/nft/hat', methodNotImplemented);
     this.router.get('/nft/hat/:id', methodNotImplemented);

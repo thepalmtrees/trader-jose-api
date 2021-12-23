@@ -53,6 +53,16 @@ class FinanceController {
       next(error);
     }
   };
+
+  public getTotalSupply = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const totalSupply = await this.financeService.getTotalSupply();
+
+      res.status(200).setHeader('content-type', 'text/plain').send(totalSupply);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default FinanceController;
