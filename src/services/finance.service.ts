@@ -100,9 +100,8 @@ class FinanceService {
     };
 
     const maxSupply = await Moralis.Web3API.native.runContractFunction(maxSupplyFn);
-    const maxSupplyBN = new BN(maxSupply);
 
-    return maxSupplyBN.toString();
+    return maxSupply;
   }
 }
 
