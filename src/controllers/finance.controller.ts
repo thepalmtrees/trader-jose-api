@@ -38,7 +38,7 @@ class FinanceController {
     try {
       const maxSupply = await this.financeService.getMaxSupply();
 
-      res.status(200).json({ maxSupply });
+      res.status(200).setHeader('content-type', 'text/plain').send(maxSupply);
     } catch (error) {
       next(error);
     }
