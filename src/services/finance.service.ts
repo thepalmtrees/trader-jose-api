@@ -35,6 +35,14 @@ type RunContractParams = {
   params?: any;
 };
 
+type Hat = {
+  id?: string;
+  external_url?: string;
+  name: string;
+  description?: string;
+  image?: string;
+};
+
 class FinanceService {
   blocksClient = new GraphQLClient(GRAPH_BLOCKS_URI, { headers: {} });
   exchangeClient = new GraphQLClient(GRAPH_EXCHANGE_URI, { headers: {} });
@@ -154,6 +162,22 @@ class FinanceService {
     const price = await Moralis.Web3API.token.getTokenPrice(options);
     logger.info(`For address ${tokenAddress} got price from ${price.exchangeName}`);
     return price.usdPrice * Math.pow(10, 18);
+  }
+
+  public getNftHat(hatId?: string): Hat {
+    if (hatId) {
+      return {
+        name: 'Joe Hat NFT',
+      };
+    }
+
+    return {
+      id: hatId,
+      external_url: `https://api.traderjoexyz.com/nft/hat/${hatId}`,
+      name: `Joe Hat NFT #${hatId}`,
+      description: 'Redeemed a real HAT and burned 1 $HAT',
+      image: 'https://ipfs.io/ipfs/QmaYPV2VKW5vHtD92m8h9Q4YFiukFx2fBWPAfCWKg6513s',
+    };
   }
 
   public async getTotalSupply(): Promise<string> {
