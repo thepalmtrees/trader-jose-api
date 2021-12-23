@@ -33,6 +33,16 @@ class FinanceController {
       next(error);
     }
   };
+
+  public getMaxSupply = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const maxSupply = await this.financeService.getMaxSupply();
+
+      res.status(200).setHeader('content-type', 'text/plain').send(maxSupply);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default FinanceController;

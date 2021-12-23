@@ -2,7 +2,9 @@ import { FACTORY_ADDRESS, JOE_TOKEN_ADDRESS, GRAPH_BAR_URI, GRAPH_BLOCKS_URI, GR
 import { logger } from '@utils/logger';
 
 import { GraphQLClient } from 'graphql-request';
-
+import Moralis from 'moralis/node';
+import BN from 'bn.js';
+import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { startOfMinute, subDays } from 'date-fns';
 
 import { barQuery, blockQuery, factoryQuery, factoryTimeTravelQuery, tokenQuery, avaxPriceQuery, dayDatasQuery } from '../queries/exchange';
@@ -86,6 +88,20 @@ class FinanceService {
     const apr = await this.getAPR();
     const apy = Math.pow(1 + apr / 365, 365) - 1;
     return apy;
+  }
+
+  public async getMaxSupply(): Promise<string> {
+    // runContractFunction function was complaining because of typing issues.
+    const maxSupplyFn: { chain: 'avalanche' } & any = {
+      chain: 'avalanche',
+      address: JOE_TOKEN_ADDRESS,
+      function_name: 'maxSupply',
+      abi: JoeContractABI,
+    };
+
+    const maxSupply = await Moralis.Web3API.native.runContractFunction(maxSupplyFn);
+
+    return maxSupply;
   }
 }
 
