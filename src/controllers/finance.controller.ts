@@ -63,6 +63,26 @@ class FinanceController {
       next(error);
     }
   };
+
+  public getCirculatingSupply = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const circulatingSupply = await this.financeService.getCirculatingSupply();
+
+      res.status(200).setHeader('content-type', 'text/plain').send(circulatingSupply);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getCirculatingSupplyAdjusted = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const adjustedSupply = await this.financeService.getCirculatingSupplyAdjusted();
+
+      res.status(200).setHeader('content-type', 'text/plain').send(adjustedSupply);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default FinanceController;

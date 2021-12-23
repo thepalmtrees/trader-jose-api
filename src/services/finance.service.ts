@@ -1,4 +1,13 @@
-import { FACTORY_ADDRESS, JOE_TOKEN_ADDRESS, GRAPH_BAR_URI, GRAPH_BLOCKS_URI, GRAPH_EXCHANGE_URI, BURN_ADDRESS } from '../configs/index';
+import {
+  FACTORY_ADDRESS,
+  JOE_TOKEN_ADDRESS,
+  GRAPH_BAR_URI,
+  GRAPH_BLOCKS_URI,
+  GRAPH_EXCHANGE_URI,
+  BURN_ADDRESS,
+  TEAM_TREASURY_WALLETS,
+  BN_1E18,
+} from '../configs/index';
 import { logger } from '@utils/logger';
 
 import { GraphQLClient } from 'graphql-request';
@@ -162,6 +171,28 @@ class FinanceService {
     const totalSupply = new BN(supply).sub(new BN(burned));
 
     return totalSupply.toString();
+  }
+
+  public async getCirculatingSupply(): Promise<string> {
+    const teamTreasuryBalances = TEAM_TREASURY_WALLETS.map((wallet: string) => this.getBalanceOf(wallet));
+
+    const totalSupply = await this.getTotalSupply();
+    const otherBalances = await Promise.all([...teamTreasuryBalances, this.getBalanceOf(BURN_ADDRESS)]);
+
+    let circulatingSupply = new BN(totalSupply);
+
+    otherBalances.forEach(balance => {
+      circulatingSupply = circulatingSupply.sub(new BN(balance));
+    });
+
+    return circulatingSupply.toString();
+  }
+
+  public async getCirculatingSupplyAdjusted(): Promise<string> {
+    const circulatingSupply = await this.getCirculatingSupply();
+    const adjustedSupply = new BN(circulatingSupply).div(BN_1E18);
+
+    return adjustedSupply.toString();
   }
 }
 
