@@ -165,7 +165,7 @@ class FinanceService {
   }
 
   public getNftHat(hatId?: string): Hat {
-    if (hatId) {
+    if (!hatId) {
       return {
         name: 'Joe Hat NFT',
       };
