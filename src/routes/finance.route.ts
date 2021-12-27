@@ -29,6 +29,8 @@ class FinanceRoute implements Routes {
     this.router.get('/priceusd/:tokenAddress', this.financeController.getPriceUSD);
     this.router.get('/lending/supply', this.financeController.getLendingTotalSupply);
     this.router.get('/lending/borrow', this.financeController.getLendingTotalBorrow);
+
+    this.router.get('/pools', this.financeController.getPools);
   }
 }
 
