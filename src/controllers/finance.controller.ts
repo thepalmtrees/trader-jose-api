@@ -47,7 +47,7 @@ class FinanceController {
   public getPriceUSD = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tokenAddress = req.params.tokenAddress;
-      const priceUSD = (await this.financeService.getPriceUSD(tokenAddress)).toString();
+      const priceUSD = await this.financeService.getPriceUSD(tokenAddress);
       res.status(200).setHeader('content-type', 'text/plain').send(priceUSD);
     } catch (error) {
       next(error);

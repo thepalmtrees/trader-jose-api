@@ -36,6 +36,7 @@ const FEE_RATE = 0.0005;
 type TokenPriceRequestParams = {
   chain: 'avalanche';
   address: string;
+  exchange: string;
 };
 
 type RunContractParams = {
@@ -165,19 +166,33 @@ class FinanceService {
   }
 
   public async getPriceUSD(requestedTokenAddress: string) {
-    let tokenAddress;
-    if (requestedTokenAddress in tokenList) {
-      tokenAddress = tokenList[requestedTokenAddress];
+    if (!requestedTokenAddress) {
+      // this is a bit silly as it should never happen, express should reject requests that come without address
+      // but this is what the code looked like in the initial joe-api, so keeping to make sure we don't miss anything.
+      return '';
     } else {
-      tokenAddress = requestedTokenAddress;
+      const tokenAddress = this.resolveTokenAddress(requestedTokenAddress);
+      const options: TokenPriceRequestParams = {
+        address: tokenAddress,
+        chain: 'avalanche',
+        exchange: 'TraderJoe',
+      };
+      try {
+        const price = await Moralis.Web3API.token.getTokenPrice(options);
+        logger.info(`For address ${tokenAddress} got price from ${price.exchangeName}`);
+        return (price.usdPrice * Math.pow(10, 18)).toString();
+      } catch (e) {
+        return `Error code {} ${e.code} - ${e.error}`;
+      }
     }
-    const options: TokenPriceRequestParams = {
-      address: tokenAddress,
-      chain: 'avalanche',
-    };
-    const price = await Moralis.Web3API.token.getTokenPrice(options);
-    logger.info(`For address ${tokenAddress} got price from ${price.exchangeName}`);
-    return price.usdPrice * Math.pow(10, 18);
+  }
+
+  private resolveTokenAddress(requestedTokenAddress: string): string {
+    if (requestedTokenAddress in tokenList) {
+      return tokenList[requestedTokenAddress];
+    } else {
+      return requestedTokenAddress;
+    }
   }
 
   public async getTotalSupply(): Promise<string> {
