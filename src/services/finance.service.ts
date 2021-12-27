@@ -7,16 +7,27 @@ import {
   BURN_ADDRESS,
   TEAM_TREASURY_WALLETS,
   BN_1E18,
+  SUPPLY_BORROW_ADDRESS,
 } from '../configs/index';
 import { logger } from '@utils/logger';
 
 import { GraphQLClient } from 'graphql-request';
 import BN from 'bn.js';
 import Moralis from 'moralis/node';
+import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { startOfMinute, subDays } from 'date-fns';
 
-import { barQuery, blockQuery, factoryQuery, factoryTimeTravelQuery, tokenQuery, avaxPriceQuery, dayDatasQuery } from '../queries/exchange';
+import {
+  barQuery,
+  blockQuery,
+  factoryQuery,
+  factoryTimeTravelQuery,
+  tokenQuery,
+  avaxPriceQuery,
+  dayDatasQuery,
+  pairsQuery,
+} from '../queries/exchange';
 
 const tokenList = require('../utils/tokenList.json');
 
@@ -41,6 +52,19 @@ type Hat = {
   name: string;
   description?: string;
   image?: string;
+}
+
+/**
+ * For now, a Pool is just an object.
+ * We will need to expose more granular types once
+ * we know what we want to return.
+ */
+type Pool = object;
+
+type PoolsPage = {
+  offset: number;
+  limit: number;
+  pairs: Array<Pool>;
 };
 
 class FinanceService {
@@ -217,6 +241,49 @@ class FinanceService {
     const adjustedSupply = new BN(circulatingSupply).div(BN_1E18);
 
     return adjustedSupply.toString();
+  }
+
+  private async getLendingState(): Promise<{ totalSupply: string; totalBorrow: string }> {
+    const totalSupplyAndBorrowFn: RunContractParams = {
+      chain: 'avalanche',
+      address: SUPPLY_BORROW_ADDRESS,
+      function_name: 'getTotalSupplyAndTotalBorrow',
+      abi: TotalSupplyAndBorrowABI,
+    };
+
+    const result = await Moralis.Web3API.native.runContractFunction(totalSupplyAndBorrowFn);
+    const totalSupply = result[0];
+    const totalBorrow = result[1];
+
+    return {
+      totalSupply,
+      totalBorrow,
+    };
+  }
+
+  public async getLendingTotalSupply(): Promise<string> {
+    const lendingState = await this.getLendingState();
+
+    return lendingState.totalSupply;
+  }
+
+  public async getLendingTotalBorrow(): Promise<string> {
+    const lendingState = await this.getLendingState();
+
+    return lendingState.totalBorrow;
+  }
+
+  public async getPools(offset: number, limit: number): Promise<PoolsPage> {
+    const pairsData = await this.exchangeClient.request(pairsQuery, {
+      skip: offset,
+      first: limit,
+    });
+
+    return {
+      offset,
+      limit,
+      pairs: pairsData.pairs,
+    };
   }
 }
 

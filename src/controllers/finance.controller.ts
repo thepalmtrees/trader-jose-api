@@ -94,6 +94,40 @@ class FinanceController {
       next(error);
     }
   };
+
+  public getLendingTotalSupply = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const lendingTotalSupply = await this.financeService.getLendingTotalSupply();
+
+      res.status(200).setHeader('content-type', 'text/plain').send(lendingTotalSupply);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getLendingTotalBorrow = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const lendingTotalBorrow = await this.financeService.getLendingTotalBorrow();
+
+      res.status(200).setHeader('content-type', 'text/plain').send(lendingTotalBorrow);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getPools = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const offset = parseInt(req.query.offset as string) || 0;
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      const poolsPage = await this.financeService.getPools(offset, limit);
+      console.log(poolsPage);
+
+      res.status(200).json(poolsPage);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default FinanceController;
