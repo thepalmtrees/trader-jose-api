@@ -123,3 +123,53 @@ export const dayDatasQuery = gql`
   }
   ${dayDataFieldsQuery}
 `;
+
+export const pairTokenFieldsQuery = gql`
+  fragment pairTokenFields on Token {
+    id
+    name
+    symbol
+    totalSupply
+    derivedAVAX
+  }
+`;
+
+export const pairFieldsQuery = gql`
+  fragment pairFields on Pair {
+    id
+    reserveUSD
+    reserveAVAX
+    volumeUSD
+    untrackedVolumeUSD
+    trackedReserveAVAX
+    token0 {
+      ...pairTokenFields
+    }
+    token1 {
+      ...pairTokenFields
+    }
+    reserve0
+    reserve1
+    token0Price
+    token1Price
+    totalSupply
+    txCount
+    timestamp
+  }
+  ${pairTokenFieldsQuery}
+`;
+
+export const pairsQuery = gql`
+  query pairsQuery(
+    $first: Int! = 100
+    $skip: Int! = 0
+    $orderBy: String! = "reserveUSD"
+    $orderDirection: String! = "desc"
+    $dateAfter: Int! = 1622419200
+  ) {
+    pairs(first: $first, skip: $skip, orderBy: $orderBy, orderDirection: $orderDirection, dateAfter: $dateAfter) {
+      ...pairFields
+    }
+  }
+  ${pairFieldsQuery}
+`;

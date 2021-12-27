@@ -18,7 +18,16 @@ import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { startOfMinute, subDays } from 'date-fns';
 
-import { barQuery, blockQuery, factoryQuery, factoryTimeTravelQuery, tokenQuery, avaxPriceQuery, dayDatasQuery } from '../queries/exchange';
+import {
+  barQuery,
+  blockQuery,
+  factoryQuery,
+  factoryTimeTravelQuery,
+  tokenQuery,
+  avaxPriceQuery,
+  dayDatasQuery,
+  pairsQuery,
+} from '../queries/exchange';
 
 const tokenList = require('../utils/tokenList.json');
 
@@ -35,6 +44,19 @@ type RunContractParams = {
   function_name: string;
   abi: any;
   params?: any;
+};
+
+/**
+ * For now, a Pool is just an object.
+ * We will need to expose more granular types once
+ * we know what we want to return.
+ */
+type Pool = object;
+
+type PoolsPage = {
+  offset: number;
+  limit: number;
+  pairs: Array<Pool>;
 };
 
 class FinanceService {
@@ -225,6 +247,19 @@ class FinanceService {
     const lendingState = await this.getLendingState();
 
     return lendingState.totalBorrow;
+  }
+
+  public async getPools(offset: number, limit: number): Promise<PoolsPage> {
+    const pairsData = await this.exchangeClient.request(pairsQuery, {
+      skip: offset,
+      first: limit,
+    });
+
+    return {
+      offset,
+      limit,
+      pairs: pairsData.pairs,
+    };
   }
 }
 
