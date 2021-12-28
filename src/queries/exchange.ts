@@ -173,3 +173,12 @@ export const pairsQuery = gql`
   }
   ${pairFieldsQuery}
 `;
+
+export const pairQuery = gql`
+  query pairQuery($dateAfter: Int! = 1622419200, $tokens: [String!] = []) {
+    pairs(where: { token0_in: $tokens, token1_in: $tokens }) {
+      ...pairFields
+    }
+  }
+  ${pairFieldsQuery}
+`;

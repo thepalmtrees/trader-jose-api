@@ -27,6 +27,7 @@ import {
   avaxPriceQuery,
   dayDatasQuery,
   pairsQuery,
+  pairQuery,
 } from '../queries/exchange';
 
 const tokenList = require('../utils/tokenList.json');
@@ -260,6 +261,14 @@ class FinanceService {
       limit,
       pairs: pairsData.pairs,
     };
+  }
+
+  public async getPool(token1Address: string, token2Address: string): Promise<Pool> {
+    const pairData = await this.exchangeClient.request(pairQuery, {
+      tokens: [token1Address, token2Address],
+    });
+
+    return pairData.pairs[0];
   }
 }
 
