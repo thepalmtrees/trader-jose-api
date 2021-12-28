@@ -268,6 +268,15 @@ class FinanceService {
       tokens: [token1Address, token2Address],
     });
 
+    if (!pairData.pairs || pairData.pairs.length === 0) {
+      // return a 404 error.
+      throw new Error('Pool not found');
+    }
+
+    if (pairData.length > 1) {
+      throw new Error('Several pool were found');
+    }
+
     return pairData.pairs[0];
   }
 }
