@@ -47,6 +47,14 @@ type RunContractParams = {
   params?: any;
 };
 
+type Hat = {
+  id?: string;
+  external_url?: string;
+  name: string;
+  description?: string;
+  image?: string;
+}
+
 /**
  * For now, a Pool is just an object.
  * We will need to expose more granular types once
@@ -193,6 +201,22 @@ class FinanceService {
     } else {
       return requestedTokenAddress;
     }
+  }
+
+  public getNftHat(hatId?: string): Hat {
+    if (!hatId) {
+      return {
+        name: 'Joe Hat NFT',
+      };
+    }
+
+    return {
+      id: hatId,
+      external_url: `https://api.traderjoexyz.com/nft/hat/${hatId}`,
+      name: `Joe Hat NFT #${hatId}`,
+      description: 'Redeemed a real HAT and burned 1 $HAT',
+      image: 'https://ipfs.io/ipfs/QmaYPV2VKW5vHtD92m8h9Q4YFiukFx2fBWPAfCWKg6513s',
+    };
   }
 
   public async getTotalSupply(): Promise<string> {

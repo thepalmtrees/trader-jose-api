@@ -34,6 +34,17 @@ class FinanceController {
     }
   };
 
+  public getNftHat = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const hatId = req.params.id;
+      const nftHat = this.financeService.getNftHat(hatId);
+
+      res.status(200).json(nftHat);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public getMaxSupply = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const maxSupply = await this.financeService.getMaxSupply();
