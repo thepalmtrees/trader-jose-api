@@ -182,3 +182,23 @@ export const pairQuery = gql`
   }
   ${pairFieldsQuery}
 `;
+
+export const poolsQuery = gql`
+  query poolsQuery($first: Int! = 500, $skip: Int! = 0, $orderBy: String! = "timestamp", $orderDirection: String! = "desc") {
+    pools(first: $first, skip: $skip, orderBy: $orderBy, orderDirection: $orderDirection) {
+      id
+      pair
+      allocPoint
+      lastRewardTimestamp
+      accJoePerShare
+      balance
+      userCount
+      owner {
+        id
+        joePerSec
+        totalAllocPoint
+      }
+      timestamp
+    }
+  }
+`;
