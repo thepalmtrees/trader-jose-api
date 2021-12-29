@@ -235,6 +235,12 @@ class FinanceService {
       return '';
     } else {
       const tokenAddress = this.resolveTokenAddress(requestedTokenAddress);
+      if (tokenAddress === XJOE_ADDRESS) {
+        return new BN(await this.getXJoePriceInAVAX())
+          .mul(new BN(await this.getPriceUSD(WAVAX_ADDRESS)))
+          .div(BN_1E18)
+          .toString();
+      }
       const options: TokenPriceRequestParams = {
         address: tokenAddress,
         chain: 'avalanche',
