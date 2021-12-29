@@ -55,6 +55,16 @@ class FinanceController {
     }
   };
 
+  public getPriceAVAX = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tokenAddress = req.params.tokenAddress;
+      const priceAVAX = await this.financeService.getPriceAVAX(tokenAddress);
+      res.status(200).setHeader('content-type', 'text/plain').send(priceAVAX);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public getPriceUSD = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const tokenAddress = req.params.tokenAddress;

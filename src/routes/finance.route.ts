@@ -25,7 +25,7 @@ class FinanceRoute implements Routes {
     this.router.get('/supply/max', this.financeController.getMaxSupply);
     this.router.get('/nft/hat', this.financeController.getNftHat);
     this.router.get('/nft/hat/:id', this.financeController.getNftHat);
-    this.router.get('/priceavax/:tokenAddress', methodNotImplemented);
+    this.router.get('/priceavax/:tokenAddress', this.financeController.getPriceAVAX);
     this.router.get('/priceusd/:tokenAddress', this.financeController.getPriceUSD);
     this.router.get('/lending/supply', this.financeController.getLendingTotalSupply);
     this.router.get('/lending/borrow', this.financeController.getLendingTotalBorrow);

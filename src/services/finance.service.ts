@@ -8,6 +8,8 @@ import {
   TEAM_TREASURY_WALLETS,
   BN_1E18,
   SUPPLY_BORROW_ADDRESS,
+  WAVAX_ADDRESS,
+  XJOE_ADDRESS,
 } from '../configs/index';
 import { logger } from '@utils/logger';
 
@@ -15,6 +17,7 @@ import { GraphQLClient } from 'graphql-request';
 import BN from 'bn.js';
 import Moralis from 'moralis/node';
 import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
+import JoeBarContractABI from '../abis/JoeBarContractABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { startOfMinute, subDays } from 'date-fns';
 
@@ -54,7 +57,7 @@ type Hat = {
   name: string;
   description?: string;
   image?: string;
-}
+};
 
 /**
  * For now, a Pool is just an object.
@@ -174,13 +177,71 @@ class FinanceService {
     return maxSupply;
   }
 
-  public async getPriceUSD(requestedTokenAddress: string) {
+  private async getXJoePriceInAVAX(): Promise<string> {
+    const xJoeTokenBalance = (await Moralis.Web3API.account.getTokenBalances({ chain: 'avalanche', address: XJOE_ADDRESS })).find(
+      t => t.token_address.toUpperCase() === JOE_TOKEN_ADDRESS.toUpperCase(),
+    ).balance;
+
+    const totalSupplyParams: RunContractParams = {
+      chain: 'avalanche',
+      address: XJOE_ADDRESS,
+      function_name: 'totalSupply',
+      abi: JoeBarContractABI,
+    };
+
+    const totalSupply = await Moralis.Web3API.native.runContractFunction(totalSupplyParams);
+
+    const ratio = new BN(xJoeTokenBalance).mul(BN_1E18).div(new BN(totalSupply));
+    const result = new BN(await this.getPriceAVAX(JOE_TOKEN_ADDRESS)).mul(ratio).div(BN_1E18);
+
+    return result.toString();
+  }
+
+  public async getPriceAVAX(requestedTokenAddress: string): Promise<string> {
     if (!requestedTokenAddress) {
       // this is a bit silly as it should never happen, express should reject requests that come without address
       // but this is what the code looked like in the initial joe-api, so keeping to make sure we don't miss anything.
       return '';
     } else {
       const tokenAddress = this.resolveTokenAddress(requestedTokenAddress);
+      if (tokenAddress === WAVAX_ADDRESS) {
+        return BN_1E18.toString();
+      }
+      if (tokenAddress === XJOE_ADDRESS) {
+        const xJoePrice = await this.getXJoePriceInAVAX();
+        return xJoePrice;
+      }
+      const options: TokenPriceRequestParams = {
+        address: tokenAddress,
+        chain: 'avalanche',
+        exchange: 'TraderJoe',
+      };
+      try {
+        const price = await Moralis.Web3API.token.getTokenPrice(options);
+        logger.info(`For address ${tokenAddress} got price from ${price.exchangeName}`);
+        if (price.nativePrice?.symbol !== 'AVAX') {
+          return `Unable to get price in AVAX for ${tokenAddress}`;
+        }
+        return price.nativePrice?.value;
+      } catch (e) {
+        return `Error code {} ${e.code} - ${e.error}`;
+      }
+    }
+  }
+
+  public async getPriceUSD(requestedTokenAddress: string): Promise<string> {
+    if (!requestedTokenAddress) {
+      // this is a bit silly as it should never happen, express should reject requests that come without address
+      // but this is what the code looked like in the initial joe-api, so keeping to make sure we don't miss anything.
+      return '';
+    } else {
+      const tokenAddress = this.resolveTokenAddress(requestedTokenAddress);
+      if (tokenAddress === XJOE_ADDRESS) {
+        return new BN(await this.getXJoePriceInAVAX())
+          .mul(new BN(await this.getPriceUSD(WAVAX_ADDRESS)))
+          .div(BN_1E18)
+          .toString();
+      }
       const options: TokenPriceRequestParams = {
         address: tokenAddress,
         chain: 'avalanche',
