@@ -16,6 +16,18 @@ class FarmController {
       next(error);
     }
   };
+
+  public getFarm = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const farmId = req.params.farmId as string;
+
+      const farm = await this.financeService.getFarm(farmId);
+
+      res.status(200).json(farm);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default FarmController;

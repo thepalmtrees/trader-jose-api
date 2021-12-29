@@ -20,6 +20,7 @@ class TraderJoeRouter implements Routes {
     this.router.get('/pools', this.poolController.getPools);
     this.router.get('/pools/:token1/:token2', this.poolController.getPool);
     this.router.get('/farms', this.farmController.getFarms);
+    this.router.get('/farms/:farmId', this.farmController.getFarm);
     // experimental
     this.router.get(`/tvl`, this.experimentalController.getTVL);
     this.router.get(`/apr`, this.experimentalController.getAPR);
