@@ -31,6 +31,7 @@ class FinanceRoute implements Routes {
     // new endpoints
     this.router.get('/pools', this.financeController.getPools);
     this.router.get('/pools/:token1/:token2', this.financeController.getPool);
+    this.router.get('/farms', this.financeController.getFarms);
   }
 }
 

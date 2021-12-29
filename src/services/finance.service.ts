@@ -10,6 +10,8 @@ import {
   SUPPLY_BORROW_ADDRESS,
   WAVAX_ADDRESS,
   XJOE_ADDRESS,
+  GRAPH_MASTERCHEFV2_URI,
+  GRAPH_MASTERCHEFV3_URI,
 } from '../configs/index';
 import { logger } from '@utils/logger';
 
@@ -31,6 +33,7 @@ import {
   dayDatasQuery,
   pairsQuery,
   pairQuery,
+  poolsQuery,
 } from '../queries/exchange';
 
 const tokenList = require('../utils/tokenList.json');
@@ -65,6 +68,13 @@ type Hat = {
  * we know what we want to return.
  */
 type Pool = object;
+type Farm = object & { timestamp: string };
+
+type FarmsPage = {
+  offset: number;
+  limit: number;
+  farms: Array<Farm>;
+};
 
 type PoolsPage = {
   offset: number;
@@ -75,6 +85,8 @@ type PoolsPage = {
 class FinanceService {
   blocksClient = new GraphQLClient(GRAPH_BLOCKS_URI, { headers: {} });
   exchangeClient = new GraphQLClient(GRAPH_EXCHANGE_URI, { headers: {} });
+  masterchefv2Client = new GraphQLClient(GRAPH_MASTERCHEFV2_URI, { headers: {} });
+  masterchefv3Client = new GraphQLClient(GRAPH_MASTERCHEFV3_URI, { headers: {} });
   barClient = new GraphQLClient(GRAPH_BAR_URI, { headers: {} });
   private async getFirstBundleAVAXPrice(): Promise<number> {
     const bundleData = await this.exchangeClient.request(avaxPriceQuery);
@@ -378,6 +390,40 @@ class FinanceService {
     }
 
     return pairData.pairs[0];
+  }
+
+  private joinFarms(farms1: Array<Farm>, farms2: Array<Farm>): Array<Farm> {
+    const allFarms = farms1.concat(farms2);
+
+    const allFarmsWithTimestamp = allFarms.map(farm => {
+      return {
+        innerFarm: farm,
+        timestamp: new Date(parseInt(farm.timestamp) * 100),
+      };
+    });
+
+    return allFarmsWithTimestamp.sort((farmOne, farmTwo) => farmOne.timestamp.getTime() - farmTwo.timestamp.getTime()).map(farm => farm.innerFarm);
+  }
+
+  /**
+   * Since there are only hundreds of farms, for now we can request all of them
+   * and do the sorting ourselves.
+   *
+   * @param offset
+   * @param limit
+   * @returns farms from masterchef v2 and v3.
+   */
+  public async getFarms(offset: number, limit: number): Promise<FarmsPage> {
+    const v2farms = await this.masterchefv2Client.request(poolsQuery);
+    const v3farms = await this.masterchefv3Client.request(poolsQuery);
+
+    const allFarms = this.joinFarms(v2farms.pools, v3farms.pools);
+
+    return {
+      offset,
+      limit,
+      farms: allFarms.slice(offset, limit),
+    };
   }
 }
 
