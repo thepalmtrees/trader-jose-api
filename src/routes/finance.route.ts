@@ -1,11 +1,7 @@
 import { Router } from 'express';
-import { Request, Response } from 'express';
 import FinanceController from '@/controllers/finance.controller';
 import { Routes } from '@interfaces/routes.interface';
 
-async function methodNotImplemented(req: Request, res: Response): Promise<void> {
-  res.status(501).json({ message: 'Method not implemented' });
-}
 class FinanceRoute implements Routes {
   public router = Router();
   public financeController = new FinanceController();
