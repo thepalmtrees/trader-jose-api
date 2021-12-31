@@ -144,6 +144,7 @@ class FinanceService {
     return balance;
   }
 
+  // TODO from where do we get this? / TVL of what?
   public async getTVL(): Promise<number> {
     const { dayDatas } = await this.exchangeClient.request(dayDatasQuery);
 
@@ -152,9 +153,9 @@ class FinanceService {
     return tvl;
   }
 
+  // From page Stake APR
+  // TODO is this APR of joe stake?
   public async getAPR(): Promise<number> {
-    logger.info(FACTORY_ADDRESS);
-    logger.info(FEE_RATE);
     const oneDayVolumeUSD = await this.getOneDayVolumeUSD();
     const factoryVolumeUSD = await this.getFactoryVolumeUSD();
 
@@ -170,6 +171,8 @@ class FinanceService {
     return (oneDayFees * 365) / totalStakedUSD;
   }
 
+  // From page Stake APY
+  // TODO is this APY of joe stake?
   public async getAPY(): Promise<number> {
     const apr = await this.getAPR();
     const apy = Math.pow(1 + apr / 365, 365) - 1;
