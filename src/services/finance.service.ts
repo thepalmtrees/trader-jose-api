@@ -12,6 +12,8 @@ import {
   XJOE_ADDRESS,
   GRAPH_MASTERCHEFV2_URI,
   GRAPH_MASTERCHEFV3_URI,
+  MASTERCHEFV2_ADDRESS,
+  MASTERCHEFV3_ADDRESS,
 } from '../configs/index';
 import { logger } from '@utils/logger';
 
@@ -33,7 +35,8 @@ import {
   dayDatasQuery,
   pairsQuery,
   pairQuery,
-  poolsQuery,
+  farmQuery,
+  farmsQuery,
 } from '../queries/exchange';
 
 const tokenList = require('../utils/tokenList.json');
@@ -389,7 +392,7 @@ class FinanceService {
     }
 
     if (pairData.length > 1) {
-      throw new Error('Several pool were found');
+      throw new Error('Several pools were found');
     }
 
     return pairData.pairs[0];
@@ -417,8 +420,8 @@ class FinanceService {
    * @returns farms from masterchef v2 and v3.
    */
   public async getFarms(offset: number, limit: number): Promise<FarmsPage> {
-    const v2farms = await this.masterchefv2Client.request(poolsQuery);
-    const v3farms = await this.masterchefv3Client.request(poolsQuery);
+    const v2farms = await this.masterchefv2Client.request(farmsQuery);
+    const v3farms = await this.masterchefv3Client.request(farmsQuery);
 
     const allFarms = this.joinFarms(v2farms.pools, v3farms.pools);
 
@@ -427,6 +430,40 @@ class FinanceService {
       limit,
       farms: allFarms.slice(offset, limit),
     };
+  }
+
+  /**
+   * For now, we allow only farm ids with this convention:
+   * farmId = "0xPairAddress-0xMasterchefAddress".
+   * @param farmId farm identifier
+   * @returns a farm content
+   */
+  public async getFarm(farmId: string): Promise<Farm> {
+    const [farmAddress, masterchefAddress] = farmId.split('-');
+    let farm;
+
+    if (masterchefAddress?.toLowerCase() === MASTERCHEFV2_ADDRESS) {
+      farm = await this.masterchefv2Client.request(farmQuery, {
+        pair: farmAddress,
+      });
+    } else if (masterchefAddress?.toLowerCase() === MASTERCHEFV3_ADDRESS) {
+      farm = await this.masterchefv3Client.request(farmQuery, {
+        pair: farmAddress,
+      });
+    } else {
+      throw new Error('Invalid Farm id.');
+    }
+
+    if (!farm.pools || farm.pools.length === 0) {
+      // return a 404 error.
+      throw new Error('Farm not found');
+    }
+
+    if (farm.length > 1) {
+      throw new Error('Several farms were found');
+    }
+
+    return farm.pools[0];
   }
 }
 
