@@ -114,8 +114,7 @@ class FinanceService {
 
   private async getJoeStaked(): Promise<number> {
     const barData = await this.barClient.request<GraphBarResponse>(barQuery);
-    console.log(barData);
-    console.log(typeof barData.bar.joeStaked);
+
     return parseFloat(barData?.bar.joeStaked);
   }
 
