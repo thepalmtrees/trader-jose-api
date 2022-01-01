@@ -11,11 +11,15 @@
     "lint": "eslint --ignore-path .gitignore --ext .ts src/",
     "lint:fix": "npm run lint -- --fix",
     "deploy:prod": "npm run build && pm2 start ecosystem.config.js --only prod",
-    "deploy:dev": "pm2 start ecosystem.config.js --only dev"
+    "deploy:dev": "pm2 start ecosystem.config.js --only dev",
+    "graphql-codegen": "graphql-codegen --config codegen.yml"
   },
   "author": "leo.polymath",
   "license": "UNLICENSED",
   "devDependencies": {
+    "@graphql-codegen/add": "^3.1.1",
+    "@graphql-codegen/cli": "2.3.1",
+    "@graphql-codegen/typescript": "2.4.2",
     "@types/compression": "^1.7.1",
     "@types/config": "^0.0.39",
     "@types/cookie-parser": "^1.4.2",
