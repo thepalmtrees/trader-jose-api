@@ -1,18 +1,286 @@
+openapi: 3.0.0
+info:
+  description: 'This API is the backend of Trader Joe: https://traderjoexyz.com/'
+  version: '1.0.0'
+  title: 'Trader Joe API'
+  termsOfService: 'http://swagger.io/terms/'
+  contact:
+    email: 'apiteam@swagger.io'
+  license:
+    name: 'Apache 2.0'
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
 tags:
-  - name: Trader jose
+  - name: Trader Joe API
     description: Brand new Trader Joe API
-
 paths:
-  # [GET] tvl
-  /api/v1/tvl:
+  /status:
     get:
       tags:
-        - tvl
-      summary: get the TVL
+        - ping, health, status
+      summary: Just a ping
       responses:
         200:
           description: 'OK'
-
-schemes:
-  - https
-  - http
+  /supply/circulating:
+    get:
+      tags:
+        - circulating supply
+      summary: Return the circulating supply for...
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 148991609094653607326581507
+  /supply/circulating-adjusted:
+    get:
+      tags:
+        - circulating supply adjusted
+      summary: Circulating supply divided by 10^18
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 148992290
+  /supply/total:
+    get:
+      tags:
+        - Joe total supply
+      summary: Total supply of Joe
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 263100406110202143733180705
+  /supply/max:
+    get:
+      tags:
+        - Joe max supply
+      summary: Max supply of Joe
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 500000000000000000000000000
+  /nft/hat:
+    get:
+      tags:
+        - A beatiful hat
+      summary: Just a beatiful hat
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: # TODO
+                type: string
+                example: 500000000000000000000000000
+  /nft/hat/{id}:
+    get:
+      parameters:
+        - name: id
+          in: path
+          description: Hat id
+          required: true
+          schema:
+            type: integer
+            format: int64
+      tags:
+        - A beatiful hat
+      summary: Just a beatiful hat
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: # TODO
+                type: string
+                example: 500000000000000000000000000
+  /priceavax/{token}:
+    get:
+      parameters:
+        - name: token
+          in: path
+          description: Token name or address
+          required: true
+          schema:
+            type: string
+      tags:
+        - Token price in avax
+      summary: Returns the current price of the token in avax
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 9585243807460309
+  /priceusd/{token}:
+    get:
+      parameters:
+        - name: token
+          in: path
+          description: Token name or address
+          required: true
+          schema:
+            type: string
+      tags:
+        - Token price in usd
+      summary: Returns the current price of the token in usd
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 2709726995236876976
+  /lending/supply:
+    get:
+      tags:
+        - Lending supply
+      summary: Returns the total lending supply
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 2709726995236876976
+  /lending/borrow:
+    get:
+      tags:
+        - Lending borrow
+      summary: Returns the total lending borrow
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: 2709726995236876976
+  /v2/tvl:
+    get:
+      tags:
+        - Get X TVL
+      summary: Returns the TVL of
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain: # TODO this is actually json
+              schema:
+                type: string
+                example: 148991609094653607326581507
+  /v2/apr:
+    get:
+      tags:
+        - Get total APR
+      summary: Returns the APR of all Trader Joe pools
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain: # TODO this is actually json
+              schema:
+                type: string
+                example: 148991609094653607326581507
+  /v2/apy:
+    get:
+      tags:
+        - Get total APY
+      summary: Returns the APY of all Trader Joe pools
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain: # TODO this is actually json
+              schema:
+                type: string
+                example: 148991609094653607326581507
+  /v2/pools:
+    get:
+      tags:
+        - Get all pools in Trader Joe
+      summary: Returns the pools of all Trader Joe
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain: # TODO this is actually json
+              schema:
+                type: string
+                example: 148991609094653607326581507
+  /v2/pools/{token1}/{token2}:
+    get:
+      parameters:
+        - name: address1
+          in: path
+          description: First token of the pair
+          required: true
+          schema:
+            type: string
+        - name: address2
+          in: path
+          description: Second token of the pair
+          required: true
+          schema:
+            type: string
+      tags:
+        - Get a specific pool in Trader Joe
+      summary: Get a specific pool in Trader Joe
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain: # TODO this is actually json
+              schema:
+                type: string
+                example: 148991609094653607326581507
+  /v2/farms:
+    get:
+      tags:
+        - Get all farms in Trader Joe
+      summary: Returns the farms of all Trader Joe
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain: # TODO this is actually json
+              schema:
+                type: string
+                example: 148991609094653607326581507
+  /v2/farms/{farmId}:
+    get:
+      parameters:
+        - name: farmId
+          in: path
+          description: Dash separated string in the format of 'pairAddress-masterchefAddress'
+          required: true
+          schema:
+            type: string
+      tags:
+        - Get a specific farm in Trader Joe
+      summary: Get a specific farm in Trader Joe
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain: # TODO this is actually json
+              schema:
+                type: string
+                example: 148991609094653607326581507
