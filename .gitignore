@@ -2,6 +2,7 @@
 .env
 .env.test
 .env.production
+.env-dev
 .DS_Store
 
 # Logs
