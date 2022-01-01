@@ -25,19 +25,15 @@ import JoeBarContractABI from '../abis/JoeBarContractABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { startOfMinute, subDays } from 'date-fns';
 
-import {
-  barQuery,
-  blockQuery,
-  factoryQuery,
-  factoryTimeTravelQuery,
-  tokenQuery,
-  avaxPriceQuery,
-  dayDatasQuery,
-  pairsQuery,
-  pairQuery,
-  farmQuery,
-  farmsQuery,
-} from '../queries/exchange';
+import { factoryQuery, factoryTimeTravelQuery, tokenQuery, avaxPriceQuery, dayDatasQuery, poolsQuery, poolQuery } from '../graphql/queries/exchange';
+import { barQuery } from '@/graphql/queries/bar';
+import { blockQuery } from '@/graphql/queries/block';
+import { farmQuery, farmsQuery } from '@/graphql/queries/masterchef';
+
+import { Pool as GraphQLFarmV2 } from '@/graphql/generated/masterchefv2';
+import { Pool as GraphQLFarmV3 } from '@/graphql/generated/masterchefv3';
+import { Bundle, DayData, Factory, Pair, Token } from '@/graphql/generated/exchange';
+import { Bar } from '@/graphql/generated/bar';
 
 const tokenList = require('../utils/tokenList.json');
 
@@ -69,20 +65,33 @@ type Hat = {
  * For now, a Pool is just an object.
  * We will need to expose more granular types once
  * we know what we want to return.
+ * Same for farms.
  */
 type Pool = object;
 type Farm = object & { timestamp: string };
 
+type GraphFarmsV2Response = { pools: Array<GraphQLFarmV2> };
+type GraphFarmsV3Response = { pools: Array<GraphQLFarmV3> };
+type GraphAvaxPriceResponse = { bundles: Array<Bundle> };
+type GraphTokenResponse = { token: Token };
+type GraphBarResponse = { bar: Bar };
+type GraphFactoryResponse = { factory: Factory };
+type GraphBlockResponse = { blocks: Array<{ number: string }> };
+type GraphDayResponse = { dayDatas: Array<DayData> };
+type GraphPoolsResponse = { pairs: Array<Pair> };
+
 type FarmsPage = {
   offset: number;
   limit: number;
-  farms: Array<Farm>;
+  farms: Farms;
 };
+
+type Farms = Array<GraphQLFarmV2 | GraphQLFarmV3>;
 
 type PoolsPage = {
   offset: number;
   limit: number;
-  pairs: Array<Pool>;
+  pools: Array<Pool>;
 };
 
 class FinanceService {
@@ -92,28 +101,30 @@ class FinanceService {
   masterchefv3Client = new GraphQLClient(GRAPH_MASTERCHEFV3_URI, { headers: {} });
   barClient = new GraphQLClient(GRAPH_BAR_URI, { headers: {} });
   private async getFirstBundleAVAXPrice(): Promise<number> {
-    const bundleData = await this.exchangeClient.request(avaxPriceQuery);
+    const bundleData = await this.exchangeClient.request<GraphAvaxPriceResponse>(avaxPriceQuery);
     return parseFloat(bundleData?.bundles[0].avaxPrice);
   }
 
   private async getTokenDerivedAVAX(): Promise<number> {
-    const tokenData = await this.exchangeClient.request(tokenQuery, {
+    const tokenData = await this.exchangeClient.request<GraphTokenResponse>(tokenQuery, {
       id: JOE_TOKEN_ADDRESS,
     });
     return parseFloat(tokenData?.token.derivedAVAX);
   }
 
   private async getJoeStaked(): Promise<number> {
-    const barData = await this.barClient.request(barQuery);
-    return barData?.bar.joeStaked;
+    const barData = await this.barClient.request<GraphBarResponse>(barQuery);
+    console.log(barData);
+    console.log(typeof barData.bar.joeStaked);
+    return parseFloat(barData?.bar.joeStaked);
   }
 
   private async getOneDayVolumeUSD(): Promise<number> {
     const oneDayBlockNumber = await this.getOneDayBlock();
-    const factoryTimeTravelData = await this.exchangeClient.request(factoryTimeTravelQuery, {
+    const factoryTimeTravelData = await this.exchangeClient.request<GraphFactoryResponse>(factoryTimeTravelQuery, {
       block: oneDayBlockNumber,
     });
-    return factoryTimeTravelData?.factory.volumeUSD;
+    return parseFloat(factoryTimeTravelData?.factory.volumeUSD);
   }
 
   private async getOneDayBlock(): Promise<{ number: number }> {
@@ -122,7 +133,7 @@ class FinanceService {
     const start = Math.floor(date / 1000);
     const end = Math.floor(date / 1000) + 600;
 
-    const blocksData = await this.blocksClient.request(blockQuery, {
+    const blocksData = await this.blocksClient.request<GraphBlockResponse>(blockQuery, {
       start,
       end,
     });
@@ -130,8 +141,8 @@ class FinanceService {
   }
 
   private async getFactoryVolumeUSD(): Promise<number> {
-    const factoryData = await this.exchangeClient.request(factoryQuery);
-    return factoryData?.factory.volumeUSD;
+    const factoryData = await this.exchangeClient.request<GraphFactoryResponse>(factoryQuery);
+    return parseFloat(factoryData?.factory.volumeUSD);
   }
 
   private async getBalanceOf(address: string): Promise<string> {
@@ -149,7 +160,7 @@ class FinanceService {
 
   // TODO from where do we get this? / TVL of what?
   public async getTVL(): Promise<number> {
-    const { dayDatas } = await this.exchangeClient.request(dayDatasQuery);
+    const { dayDatas } = await this.exchangeClient.request<GraphDayResponse>(dayDatasQuery);
 
     const tvl = parseFloat(dayDatas[0].liquidityUSD);
 
@@ -369,7 +380,7 @@ class FinanceService {
   }
 
   public async getPools(offset: number, limit: number): Promise<PoolsPage> {
-    const pairsData = await this.exchangeClient.request(pairsQuery, {
+    const pairsData = await this.exchangeClient.request<GraphPoolsResponse>(poolsQuery, {
       skip: offset,
       first: limit,
     });
@@ -377,12 +388,12 @@ class FinanceService {
     return {
       offset,
       limit,
-      pairs: pairsData.pairs,
+      pools: pairsData.pairs,
     };
   }
 
   public async getPool(token1Address: string, token2Address: string): Promise<Pool> {
-    const pairData = await this.exchangeClient.request(pairQuery, {
+    const pairData = await this.exchangeClient.request<GraphPoolsResponse>(poolQuery, {
       tokens: [token1Address, token2Address],
     });
 
@@ -391,15 +402,16 @@ class FinanceService {
       throw new Error('Pool not found');
     }
 
-    if (pairData.length > 1) {
+    if (pairData.pairs.length > 1) {
       throw new Error('Several pools were found');
     }
 
     return pairData.pairs[0];
   }
 
-  private joinFarms(farms1: Array<Farm>, farms2: Array<Farm>): Array<Farm> {
-    const allFarms = farms1.concat(farms2);
+  private joinFarms(farms1: Array<GraphQLFarmV2>, farms2: Array<GraphQLFarmV3>): Farms {
+    // TODO: We need to build our own types at some point and convert from graphql types to ours.
+    const allFarms: Farms = farms1.concat(farms2 as unknown as GraphQLFarmV2);
 
     const allFarmsWithTimestamp = allFarms.map(farm => {
       return {
@@ -420,8 +432,8 @@ class FinanceService {
    * @returns farms from masterchef v2 and v3.
    */
   public async getFarms(offset: number, limit: number): Promise<FarmsPage> {
-    const v2farms = await this.masterchefv2Client.request(farmsQuery);
-    const v3farms = await this.masterchefv3Client.request(farmsQuery);
+    const v2farms = await this.masterchefv2Client.request<GraphFarmsV2Response>(farmsQuery);
+    const v3farms = await this.masterchefv3Client.request<GraphFarmsV3Response>(farmsQuery);
 
     const allFarms = this.joinFarms(v2farms.pools, v3farms.pools);
 
@@ -440,14 +452,14 @@ class FinanceService {
    */
   public async getFarm(farmId: string): Promise<Farm> {
     const [farmAddress, masterchefAddress] = farmId.split('-');
-    let farm;
+    let farm: GraphFarmsV2Response | GraphFarmsV3Response;
 
     if (masterchefAddress?.toLowerCase() === MASTERCHEFV2_ADDRESS) {
-      farm = await this.masterchefv2Client.request(farmQuery, {
+      farm = await this.masterchefv2Client.request<GraphFarmsV2Response>(farmQuery, {
         pair: farmAddress,
       });
     } else if (masterchefAddress?.toLowerCase() === MASTERCHEFV3_ADDRESS) {
-      farm = await this.masterchefv3Client.request(farmQuery, {
+      farm = await this.masterchefv3Client.request<GraphFarmsV3Response>(farmQuery, {
         pair: farmAddress,
       });
     } else {
@@ -459,7 +471,7 @@ class FinanceService {
       throw new Error('Farm not found');
     }
 
-    if (farm.length > 1) {
+    if (farm.pools.length > 1) {
       throw new Error('Several farms were found');
     }
 

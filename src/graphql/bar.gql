@@ -1,0 +1,142 @@
+# Bar
+type Bar @entity {
+  # Contract address
+  id: ID!
+
+  # Decimals
+  decimals: Int!
+
+  # Name
+  name: String!
+
+  # Joe token
+  joe: Bytes!
+
+  # Symbol
+  symbol: String!
+
+  # Total xJoe supply
+  totalSupply: BigDecimal!
+
+  # Ratio xJoe per Joe
+  ratio: BigDecimal!
+
+  # xJoe minted
+  xJoeMinted: BigDecimal!
+
+  # xJoe burned
+  xJoeBurned: BigDecimal!
+
+  # Joe staked
+  joeStaked: BigDecimal!
+
+  # Joe staked USD
+  joeStakedUSD: BigDecimal!
+
+  # Joe harvested
+  joeHarvested: BigDecimal!
+
+  # Joe harvested USD
+  joeHarvestedUSD: BigDecimal!
+
+  # xJoe age
+  xJoeAge: BigDecimal!
+
+  # xJoe age destroyed
+  xJoeAgeDestroyed: BigDecimal!
+
+  # Users in the bar
+  users: [User!]! @derivedFrom(field: "bar")
+
+  # Updated at
+  updatedAt: BigInt!
+}
+
+# User
+type User @entity {
+  # ID
+  id: ID!
+
+  # Bar
+  bar: Bar
+
+  # xJoe (balance)
+  xJoe: BigDecimal!
+
+  # xJoe In
+  xJoeIn: BigDecimal!
+
+  # xJoe Out
+  xJoeOut: BigDecimal!
+
+  # Minted
+  xJoeMinted: BigDecimal!
+
+  # Burned
+  xJoeBurned: BigDecimal!
+
+  # xJoe offset
+  xJoeOffset: BigDecimal!
+
+  # xJoe age
+  xJoeAge: BigDecimal!
+
+  # xJoe age destroyed
+  xJoeAgeDestroyed: BigDecimal!
+
+  # Staked
+  joeStaked: BigDecimal!
+
+  # Sum of $ at time of staking
+  joeStakedUSD: BigDecimal!
+
+  # Harvested
+  joeHarvested: BigDecimal!
+
+  # Sum of $ at time of harvesting
+  joeHarvestedUSD: BigDecimal!
+
+  # To get bar pending joe (xJoe * staked / bar.totalSupply)
+
+  # Joe Out
+  joeOut: BigDecimal!
+
+  # Joe In
+  joeIn: BigDecimal!
+
+  # USD Out
+  usdOut: BigDecimal!
+
+  # USD In
+  usdIn: BigDecimal!
+
+  # Updated at
+  updatedAt: BigInt!
+
+  # joe offset
+  joeOffset: BigDecimal!
+
+  # usd offset
+  usdOffset: BigDecimal!
+}
+
+# History
+enum Timeframe {
+  Day
+}
+
+type History @entity {
+  id: ID!
+  date: Int!
+  timeframe: Timeframe!
+  joeStaked: BigDecimal!
+  joeStakedUSD: BigDecimal!
+  joeHarvested: BigDecimal!
+  joeHarvestedUSD: BigDecimal!
+  xJoeAge: BigDecimal!
+  xJoeAgeDestroyed: BigDecimal!
+  xJoeMinted: BigDecimal!
+  xJoeBurned: BigDecimal!
+  xJoeSupply: BigDecimal!
+  ratio: BigDecimal!
+}

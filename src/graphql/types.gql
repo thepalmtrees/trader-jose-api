@@ -1,0 +1,13 @@
+# These are custom types from theGraph.
+# We map these to string in the codegen.yml file.
+scalar BigInt
+scalar BigDecimal
+scalar Bytes
+
+# IMPORTANT
+# Since theGraph does not expose the main Query type
+# we need to generate a dummy Query.
+# Also, this is why we cannot create types from queries and fragments.
+type Query {
+  hello: String!
+}
