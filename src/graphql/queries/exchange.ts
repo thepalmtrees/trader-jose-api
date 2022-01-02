@@ -107,6 +107,13 @@ export const poolFieldsFragment = gql`
     totalSupply
     txCount
     timestamp
+    hourData(first: 24, orderBy: date, orderDirection: desc, where: { date_gt: $dateAfter }) {
+      volumeUSD
+      untrackedVolumeUSD
+      date
+      volumeToken0
+      volumeToken1
+    }
   }
   ${pairTokenFieldsFragment}
 `;
@@ -127,7 +134,7 @@ export const poolsQuery = gql`
 `;
 
 export const poolQuery = gql`
-  query poolQuery($dateAfter: Int! = 1622419200, $tokens: [String!] = []) {
+  query poolQuery($dateAfter: Int! = 1641060000, $tokens: [String!] = []) {
     pairs(where: { token0_in: $tokens, token1_in: $tokens }) {
       ...poolFields
     }
