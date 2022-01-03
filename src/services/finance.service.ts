@@ -19,6 +19,7 @@ import { logger } from '@utils/logger';
 import { GraphQLClient } from 'graphql-request';
 import BN from 'bn.js';
 import Moralis from 'moralis/node';
+import createError from 'http-errors';
 import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
 import JoeBarContractABI from '../abis/JoeBarContractABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
@@ -519,12 +520,11 @@ class FinanceService {
         pair: farmAddress,
       });
     } else {
-      throw new Error('Invalid Farm id.');
+      throw new createError.BadRequest('Invalid Farm id');
     }
 
     if (!farm.pools || farm.pools.length === 0) {
-      // return a 404 error.
-      throw new Error('Farm not found');
+      throw new createError.NotFound('Farm not found');
     }
 
     if (farm.pools.length > 1) {
