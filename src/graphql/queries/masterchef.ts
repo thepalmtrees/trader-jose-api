@@ -1,3 +1,4 @@
+import { TRADER_JOE_INITIAL_DATE } from '@/configs';
 import gql from 'graphql-tag';
 
 const farmFieldsFragment = gql`
@@ -28,7 +29,7 @@ export const farmsQuery = gql`
 `;
 
 export const farmQuery = gql`
-  query farmQuery($dateAfter: Int! = 1622419200, $pair: String!) {
+  query farmQuery($dateAfter: Int! = ${TRADER_JOE_INITIAL_DATE}, $pair: String!) {
     pools(where: { pair: $pair }) {
       ...farmFields
     }

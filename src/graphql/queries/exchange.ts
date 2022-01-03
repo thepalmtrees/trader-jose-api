@@ -1,5 +1,5 @@
 import gql from 'graphql-tag';
-import { FACTORY_ADDRESS } from '../../configs/index';
+import { FACTORY_ADDRESS, TRADER_JOE_INITIAL_DATE } from '../../configs/index';
 
 export const factoryQuery = gql`
   query factoryQuery($id: String! = "${FACTORY_ADDRESS}") {
@@ -124,7 +124,7 @@ export const poolsQuery = gql`
     $skip: Int! = 0
     $orderBy: String! = "reserveUSD"
     $orderDirection: String! = "desc"
-    $dateAfter: Int! = 1622419200
+    $dateAfter: Int! = ${TRADER_JOE_INITIAL_DATE}
   ) {
     pairs(first: $first, skip: $skip, orderBy: $orderBy, orderDirection: $orderDirection, dateAfter: $dateAfter) {
       ...poolFields
@@ -134,7 +134,7 @@ export const poolsQuery = gql`
 `;
 
 export const poolQuery = gql`
-  query poolQuery($dateAfter: Int! = 1641060000, $tokens: [String!] = []) {
+  query poolQuery($dateAfter: Int! = ${TRADER_JOE_INITIAL_DATE}, $tokens: [String!] = []) {
     pairs(where: { token0_in: $tokens, token1_in: $tokens }) {
       ...poolFields
     }

@@ -22,7 +22,7 @@ import Moralis from 'moralis/node';
 import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
 import JoeBarContractABI from '../abis/JoeBarContractABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
-import { startOfMinute, subDays } from 'date-fns';
+import { startOfHour, startOfMinute, subDays } from 'date-fns';
 
 import { factoryQuery, factoryTimeTravelQuery, tokenQuery, avaxPriceQuery, dayDatasQuery, poolsQuery, poolQuery } from '../graphql/queries/exchange';
 import { barQuery } from '@/graphql/queries/bar';
@@ -402,10 +402,10 @@ class FinanceService {
     const reserve0 = parseFloat(token0Reserve);
     const reserve1 = parseFloat(token1Reserve);
 
-    const reserve0InUSD = reserve0 * token0PriceInUSD;
-    const reserve1InUSD = reserve1 * token1PriceInUSD;
+    const token0LiquidityUSD = reserve0 * token0PriceInUSD;
+    const token1LiquidityUSD = reserve1 * token1PriceInUSD;
 
-    return reserve0InUSD + reserve1InUSD;
+    return token0LiquidityUSD + token1LiquidityUSD;
   }
 
   private calculatePoolAPR(volume24hs: number, tvl: number): number {
@@ -429,8 +429,11 @@ class FinanceService {
   }
 
   public async getPool(token1Address: string, token2Address: string): Promise<Pool> {
+    const yesterdayInSeconds = startOfHour(subDays(Date.now(), 1)).getTime() / 1000;
+
     const pairData = await this.exchangeClient.request<GraphPoolsResponse>(poolQuery, {
       tokens: [token1Address, token2Address],
+      dateAfter: yesterdayInSeconds,
     });
 
     if (!pairData.pairs || pairData.pairs.length === 0) {

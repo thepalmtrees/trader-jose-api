@@ -30,3 +30,5 @@ export const TEAM_TREASURY_WALLETS = [
 ];
 
 export const BN_1E18 = new BN('1000000000000000000');
+
+export const TRADER_JOE_INITIAL_DATE = 1622419200;
