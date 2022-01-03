@@ -287,8 +287,8 @@ class FinanceService {
   }
 
   private resolveTokenAddress(requestedTokenAddress: string): string {
-    if (requestedTokenAddress in tokenList) {
-      return tokenList[requestedTokenAddress];
+    if (requestedTokenAddress.toLowerCase() in tokenList) {
+      return tokenList[requestedTokenAddress.toLowerCase()];
     } else {
       return requestedTokenAddress;
     }
@@ -388,25 +388,54 @@ class FinanceService {
     return {
       offset,
       limit,
-      pools: pairsData.pairs,
+      pools: pairsData.pairs.map(x => this.enrichPool(x)).sort((a, b) => b.tvl - a.tvl),
     };
   }
 
-  /**
-   * IMPORTANT. We cannot use this method, for now, to calculate tvl of several pools
-   * since it would take a long time to get each of the tokens price.
-   */
-  private async calculatePoolTVL(token0Address: string, token0Reserve: string, token1Address: string, token1Reserve: string): Promise<number> {
-    const token0PriceInUSD = parseFloat(await this.getPriceUSD(token0Address)) / Math.pow(10, 18);
-    const token1PriceInUSD = parseFloat(await this.getPriceUSD(token1Address)) / Math.pow(10, 18);
+  public async getPool(requestedToken1Address: string, requestedToken2Address: string): Promise<Pool> {
+    const yesterdayInSeconds = startOfHour(subDays(Date.now(), 1)).getTime() / 1000;
 
-    const reserve0 = parseFloat(token0Reserve);
-    const reserve1 = parseFloat(token1Reserve);
+    const token1Address = this.resolveTokenAddress(requestedToken1Address).toLowerCase();
+    const token2Address = this.resolveTokenAddress(requestedToken2Address).toLowerCase();
 
-    const token0LiquidityUSD = reserve0 * token0PriceInUSD;
-    const token1LiquidityUSD = reserve1 * token1PriceInUSD;
+    const pairData = await this.exchangeClient.request<GraphPoolsResponse>(poolQuery, {
+      tokens: [token1Address, token2Address],
+      dateAfter: yesterdayInSeconds,
+    });
 
-    return token0LiquidityUSD + token1LiquidityUSD;
+    if (!pairData.pairs || pairData.pairs.length === 0) {
+      // return a 404 error.
+      throw new Error('Pool not found');
+    }
+
+    if (pairData.pairs.length > 1) {
+      throw new Error('Several pools were found');
+    }
+
+    const pool = pairData.pairs[0];
+
+    return this.enrichPool(pool);
+  }
+
+  private enrichPool(pool: Pair) {
+    const { hourData, reserveUSD } = pool;
+
+    const tvl = parseFloat(reserveUSD);
+
+    const volume24hs = this.getVolume24hs(hourData);
+    const fees24hs = volume24hs * POOLS_FEE_RATE;
+
+    const apr = this.calculatePoolAPR(volume24hs, tvl);
+    const apy = this.calculateAPY(apr);
+
+    return {
+      ...pool,
+      volume24hs,
+      tvl,
+      apr,
+      apy,
+      fees24hs,
+    };
   }
 
   private calculatePoolAPR(volume24hs: number, tvl: number): number {
@@ -427,43 +456,6 @@ class FinanceService {
       }
       return accum + parseFloat(hour.volumeUSD);
     }, 0);
-  }
-
-  public async getPool(token1Address: string, token2Address: string): Promise<Pool> {
-    const yesterdayInSeconds = startOfHour(subDays(Date.now(), 1)).getTime() / 1000;
-
-    const pairData = await this.exchangeClient.request<GraphPoolsResponse>(poolQuery, {
-      tokens: [token1Address, token2Address],
-      dateAfter: yesterdayInSeconds,
-    });
-
-    if (!pairData.pairs || pairData.pairs.length === 0) {
-      // return a 404 error.
-      throw new Error('Pool not found');
-    }
-
-    if (pairData.pairs.length > 1) {
-      throw new Error('Several pools were found');
-    }
-
-    const { hourData, reserve0, reserve1, token0, token1 } = pairData.pairs[0];
-
-    const tvl = await this.calculatePoolTVL(token0.id, reserve0, token1.id, reserve1);
-
-    const volume24hs = this.getVolume24hs(hourData);
-    const fees24hs = volume24hs * POOLS_FEE_RATE;
-
-    const apr = this.calculatePoolAPR(volume24hs, tvl);
-    const apy = this.calculateAPY(apr);
-
-    return {
-      ...pairData.pairs[0],
-      volume24hs,
-      tvl,
-      apr,
-      apy,
-      fees24hs,
-    };
   }
 
   private joinFarms(farms1: Array<GraphQLFarmV2>, farms2: Array<GraphQLFarmV3>): Farms {
