@@ -1,5 +1,4 @@
 import {
-  FACTORY_ADDRESS,
   JOE_TOKEN_ADDRESS,
   GRAPH_BAR_URI,
   GRAPH_BLOCKS_URI,
@@ -23,7 +22,7 @@ import Moralis from 'moralis/node';
 import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
 import JoeBarContractABI from '../abis/JoeBarContractABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
-import { startOfMinute, subDays } from 'date-fns';
+import { startOfHour, startOfMinute, subDays } from 'date-fns';
 
 import { factoryQuery, factoryTimeTravelQuery, tokenQuery, avaxPriceQuery, dayDatasQuery, poolsQuery, poolQuery } from '../graphql/queries/exchange';
 import { barQuery } from '@/graphql/queries/bar';
@@ -32,12 +31,13 @@ import { farmQuery, farmsQuery } from '@/graphql/queries/masterchef';
 
 import { Pool as GraphQLFarmV2 } from '@/graphql/generated/masterchefv2';
 import { Pool as GraphQLFarmV3 } from '@/graphql/generated/masterchefv3';
-import { Bundle, DayData, Factory, Pair, Token } from '@/graphql/generated/exchange';
+import { Bundle, DayData, Factory, Pair, PairHourData, Token } from '@/graphql/generated/exchange';
 import { Bar } from '@/graphql/generated/bar';
 
 const tokenList = require('../utils/tokenList.json');
 
 const FEE_RATE = 0.0005;
+const POOLS_FEE_RATE = 0.0025;
 
 type TokenPriceRequestParams = {
   chain: 'avalanche';
@@ -176,10 +176,10 @@ class FinanceService {
     const oneDayVolume = factoryVolumeUSD - oneDayVolumeUSD;
     const oneDayFees = oneDayVolume * FEE_RATE;
     const tokenDerivedAVAX = await this.getTokenDerivedAVAX();
-    const firstBundleAVAXPrice = await this.getFirstBundleAVAXPrice();
-    const joePrice = tokenDerivedAVAX * firstBundleAVAXPrice;
+    const avaxPriceInUSD = await this.getFirstBundleAVAXPrice();
+    const joePriceInUSD = tokenDerivedAVAX * avaxPriceInUSD;
     const joeStaked = await this.getJoeStaked();
-    const totalStakedUSD = joeStaked * joePrice;
+    const totalStakedUSD = joeStaked * joePriceInUSD;
 
     return (oneDayFees * 365) / totalStakedUSD;
   }
@@ -188,7 +188,7 @@ class FinanceService {
   // TODO is this APY of joe stake?
   public async getAPY(): Promise<number> {
     const apr = await this.getAPR();
-    const apy = Math.pow(1 + apr / 365, 365) - 1;
+    const apy = this.calculateAPY(apr);
     return apy;
   }
 
@@ -391,9 +391,49 @@ class FinanceService {
     };
   }
 
+  /**
+   * IMPORTANT. We cannot use this method, for now, to calculate tvl of several pools
+   * since it would take a long time to get each of the tokens price.
+   */
+  private async calculatePoolTVL(token0Address: string, token0Reserve: string, token1Address: string, token1Reserve: string): Promise<number> {
+    const token0PriceInUSD = parseFloat(await this.getPriceUSD(token0Address)) / Math.pow(10, 18);
+    const token1PriceInUSD = parseFloat(await this.getPriceUSD(token1Address)) / Math.pow(10, 18);
+
+    const reserve0 = parseFloat(token0Reserve);
+    const reserve1 = parseFloat(token1Reserve);
+
+    const token0LiquidityUSD = reserve0 * token0PriceInUSD;
+    const token1LiquidityUSD = reserve1 * token1PriceInUSD;
+
+    return token0LiquidityUSD + token1LiquidityUSD;
+  }
+
+  private calculatePoolAPR(volume24hs: number, tvl: number): number {
+    const fees24hs = volume24hs * POOLS_FEE_RATE;
+    const yearlyFee = fees24hs * 365;
+
+    return yearlyFee / tvl;
+  }
+
+  private calculateAPY(apr: number): number {
+    return Math.pow(1 + apr / 365, 365) - 1;
+  }
+
+  private getVolume24hs(last24hours: PairHourData[]): number {
+    return last24hours.reduce((accum, hour) => {
+      if (parseFloat(hour.volumeUSD) === 0) {
+        return accum + parseFloat(hour.untrackedVolumeUSD);
+      }
+      return accum + parseFloat(hour.volumeUSD);
+    }, 0);
+  }
+
   public async getPool(token1Address: string, token2Address: string): Promise<Pool> {
+    const yesterdayInSeconds = startOfHour(subDays(Date.now(), 1)).getTime() / 1000;
+
     const pairData = await this.exchangeClient.request<GraphPoolsResponse>(poolQuery, {
       tokens: [token1Address, token2Address],
+      dateAfter: yesterdayInSeconds,
     });
 
     if (!pairData.pairs || pairData.pairs.length === 0) {
@@ -405,7 +445,24 @@ class FinanceService {
       throw new Error('Several pools were found');
     }
 
-    return pairData.pairs[0];
+    const { hourData, reserve0, reserve1, token0, token1 } = pairData.pairs[0];
+
+    const tvl = await this.calculatePoolTVL(token0.id, reserve0, token1.id, reserve1);
+
+    const volume24hs = this.getVolume24hs(hourData);
+    const fees24hs = volume24hs * POOLS_FEE_RATE;
+
+    const apr = this.calculatePoolAPR(volume24hs, tvl);
+    const apy = this.calculateAPY(apr);
+
+    return {
+      ...pairData.pairs[0],
+      volume24hs,
+      tvl,
+      apr,
+      apy,
+      fees24hs,
+    };
   }
 
   private joinFarms(farms1: Array<GraphQLFarmV2>, farms2: Array<GraphQLFarmV3>): Farms {
