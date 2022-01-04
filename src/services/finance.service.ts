@@ -23,21 +23,17 @@ import createError from 'http-errors';
 import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
 import JoeBarContractABI from '../abis/JoeBarContractABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
-import { startOfHour, startOfMinute, subDays } from 'date-fns';
+import { startOfHour, subDays } from 'date-fns';
 
-import { factoryQuery, factoryTimeTravelQuery, tokenQuery, avaxPriceQuery, dayDatasQuery, poolsQuery, poolQuery } from '../graphql/queries/exchange';
-import { barQuery } from '@/graphql/queries/bar';
-import { blockQuery } from '@/graphql/queries/block';
+import { dayDatasQuery, poolsQuery, poolQuery } from '../graphql/queries/exchange';
 import { farmQuery, farmsQuery } from '@/graphql/queries/masterchef';
 
 import { Pool as GraphQLFarmV2 } from '@/graphql/generated/masterchefv2';
 import { Pool as GraphQLFarmV3 } from '@/graphql/generated/masterchefv3';
-import { Bundle, DayData, Factory, Pair, PairHourData, Token } from '@/graphql/generated/exchange';
-import { Bar } from '@/graphql/generated/bar';
+import { DayData, Pair, PairHourData } from '@/graphql/generated/exchange';
 
 const tokenList = require('../utils/tokenList.json');
 
-const FEE_RATE = 0.0005;
 const POOLS_FEE_RATE = 0.0025;
 
 type TokenPriceRequestParams = {
@@ -73,11 +69,6 @@ type Farm = object & { timestamp: string };
 
 type GraphFarmsV2Response = { pools: Array<GraphQLFarmV2> };
 type GraphFarmsV3Response = { pools: Array<GraphQLFarmV3> };
-type GraphAvaxPriceResponse = { bundles: Array<Bundle> };
-type GraphTokenResponse = { token: Token };
-type GraphBarResponse = { bar: Bar };
-type GraphFactoryResponse = { factory: Factory };
-type GraphBlockResponse = { blocks: Array<{ number: string }> };
 type GraphDayResponse = { dayDatas: Array<DayData> };
 type GraphPoolsResponse = { pairs: Array<Pair> };
 
@@ -101,49 +92,6 @@ class FinanceService {
   masterchefv2Client = new GraphQLClient(GRAPH_MASTERCHEFV2_URI, { headers: {} });
   masterchefv3Client = new GraphQLClient(GRAPH_MASTERCHEFV3_URI, { headers: {} });
   barClient = new GraphQLClient(GRAPH_BAR_URI, { headers: {} });
-  private async getFirstBundleAVAXPrice(): Promise<number> {
-    const bundleData = await this.exchangeClient.request<GraphAvaxPriceResponse>(avaxPriceQuery);
-    return parseFloat(bundleData?.bundles[0].avaxPrice);
-  }
-
-  private async getTokenDerivedAVAX(): Promise<number> {
-    const tokenData = await this.exchangeClient.request<GraphTokenResponse>(tokenQuery, {
-      id: JOE_TOKEN_ADDRESS,
-    });
-    return parseFloat(tokenData?.token.derivedAVAX);
-  }
-
-  private async getJoeStaked(): Promise<number> {
-    const barData = await this.barClient.request<GraphBarResponse>(barQuery);
-
-    return parseFloat(barData?.bar.joeStaked);
-  }
-
-  private async getOneDayVolumeUSD(): Promise<number> {
-    const oneDayBlockNumber = await this.getOneDayBlock();
-    const factoryTimeTravelData = await this.exchangeClient.request<GraphFactoryResponse>(factoryTimeTravelQuery, {
-      block: oneDayBlockNumber,
-    });
-    return parseFloat(factoryTimeTravelData?.factory.volumeUSD);
-  }
-
-  private async getOneDayBlock(): Promise<{ number: number }> {
-    // https://stackoverflow.com/questions/48274028/the-left-hand-and-right-hand-side-of-an-arithmetic-operation-must-be-of-type-a
-    const date = startOfMinute(subDays(Date.now(), 1)).getTime();
-    const start = Math.floor(date / 1000);
-    const end = Math.floor(date / 1000) + 600;
-
-    const blocksData = await this.blocksClient.request<GraphBlockResponse>(blockQuery, {
-      start,
-      end,
-    });
-    return { number: Number(blocksData?.blocks[0].number) };
-  }
-
-  private async getFactoryVolumeUSD(): Promise<number> {
-    const factoryData = await this.exchangeClient.request<GraphFactoryResponse>(factoryQuery);
-    return parseFloat(factoryData?.factory.volumeUSD);
-  }
 
   private async getBalanceOf(address: string): Promise<string> {
     const balanceOfFn: RunContractParams = {
@@ -165,32 +113,6 @@ class FinanceService {
     const tvl = parseFloat(dayDatas[0].liquidityUSD);
 
     return tvl;
-  }
-
-  // From page Stake APR
-  // TODO is this APR of joe stake?
-  public async getAPR(): Promise<number> {
-    const oneDayVolumeUSD = await this.getOneDayVolumeUSD();
-    const factoryVolumeUSD = await this.getFactoryVolumeUSD();
-
-    // get last day volume and APY
-    const oneDayVolume = factoryVolumeUSD - oneDayVolumeUSD;
-    const oneDayFees = oneDayVolume * FEE_RATE;
-    const tokenDerivedAVAX = await this.getTokenDerivedAVAX();
-    const avaxPriceInUSD = await this.getFirstBundleAVAXPrice();
-    const joePriceInUSD = tokenDerivedAVAX * avaxPriceInUSD;
-    const joeStaked = await this.getJoeStaked();
-    const totalStakedUSD = joeStaked * joePriceInUSD;
-
-    return (oneDayFees * 365) / totalStakedUSD;
-  }
-
-  // From page Stake APY
-  // TODO is this APY of joe stake?
-  public async getAPY(): Promise<number> {
-    const apr = await this.getAPR();
-    const apy = this.calculateAPY(apr);
-    return apy;
   }
 
   public async getMaxSupply(): Promise<string> {
