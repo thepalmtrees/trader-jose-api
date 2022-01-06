@@ -31,10 +31,7 @@ import { farmQuery, farmsQuery } from '@/graphql/queries/masterchef';
 import { Pool as GraphQLFarmV2 } from '@/graphql/generated/masterchefv2';
 import { Pool as GraphQLFarmV3 } from '@/graphql/generated/masterchefv3';
 import { DayData, Pair, PairHourData } from '@/graphql/generated/exchange';
-
-const tokenList = require('../utils/tokenList.json');
-
-const POOLS_FEE_RATE = 0.0025;
+import Utils from './utils';
 
 type TokenPriceRequestParams = {
   chain: 'avalanche';
@@ -154,7 +151,7 @@ class FinanceService {
       // but this is what the code looked like in the initial joe-api, so keeping to make sure we don't miss anything.
       return '';
     } else {
-      const tokenAddress = this.resolveTokenAddress(requestedTokenAddress);
+      const tokenAddress = Utils.resolveTokenAddress(requestedTokenAddress);
       if (tokenAddress === WAVAX_ADDRESS) {
         return BN_1E18.toString();
       }
@@ -186,7 +183,7 @@ class FinanceService {
       // but this is what the code looked like in the initial joe-api, so keeping to make sure we don't miss anything.
       return '';
     } else {
-      const tokenAddress = this.resolveTokenAddress(requestedTokenAddress);
+      const tokenAddress = Utils.resolveTokenAddress(requestedTokenAddress);
       if (tokenAddress === XJOE_ADDRESS) {
         return new BN(await this.getXJoePriceInAVAX())
           .mul(new BN(await this.getPriceUSD(WAVAX_ADDRESS)))
@@ -205,14 +202,6 @@ class FinanceService {
       } catch (e) {
         return `Error code {} ${e.code} - ${e.error}`;
       }
-    }
-  }
-
-  private resolveTokenAddress(requestedTokenAddress: string): string {
-    if (requestedTokenAddress.toLowerCase() in tokenList) {
-      return tokenList[requestedTokenAddress.toLowerCase()];
-    } else {
-      return requestedTokenAddress;
     }
   }
 
@@ -317,8 +306,8 @@ class FinanceService {
   public async getPool(requestedToken1Address: string, requestedToken2Address: string): Promise<Pool> {
     const yesterdayInSeconds = startOfHour(subDays(Date.now(), 1)).getTime() / 1000;
 
-    const token1Address = this.resolveTokenAddress(requestedToken1Address).toLowerCase();
-    const token2Address = this.resolveTokenAddress(requestedToken2Address).toLowerCase();
+    const token1Address = Utils.resolveTokenAddress(requestedToken1Address).toLowerCase();
+    const token2Address = Utils.resolveTokenAddress(requestedToken2Address).toLowerCase();
 
     const pairData = await this.exchangeClient.request<GraphPoolsResponse>(poolQuery, {
       tokens: [token1Address, token2Address],
@@ -345,10 +334,10 @@ class FinanceService {
     const tvl = parseFloat(reserveUSD);
 
     const volume24hs = this.getVolume24hs(hourData);
-    const fees24hs = volume24hs * POOLS_FEE_RATE;
+    const fees24hs = Utils.calculatePoolFees24h(volume24hs);
 
-    const apr = this.calculatePoolAPR(volume24hs, tvl);
-    const apy = this.calculateAPY(apr);
+    const apr = Utils.calculatePoolAPR(fees24hs, tvl);
+    const apy = Utils.calculatePoolAPY(apr);
 
     return {
       ...pool,
@@ -358,17 +347,6 @@ class FinanceService {
       apy,
       fees24hs,
     };
-  }
-
-  private calculatePoolAPR(volume24hs: number, tvl: number): number {
-    const fees24hs = volume24hs * POOLS_FEE_RATE;
-    const yearlyFee = fees24hs * 365;
-
-    return yearlyFee / tvl;
-  }
-
-  private calculateAPY(apr: number): number {
-    return Math.pow(1 + apr / 365, 365) - 1;
   }
 
   private getVolume24hs(last24hours: PairHourData[]): number {
