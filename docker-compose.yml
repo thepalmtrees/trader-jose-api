@@ -1,6 +1,14 @@
 version: '3.7'
 
 services:
+  memcached:
+    image: memcached:alpine
+    container_name: memcached
+    ports:
+      - '11211:11211'
+    restart: 'unless-stopped'
+    networks:
+      - backend
   proxy:
     image: nginx:alpine
     container_name: proxy
