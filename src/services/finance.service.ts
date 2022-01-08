@@ -25,8 +25,9 @@ import JoeBarContractABI from '../abis/JoeBarContractABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { startOfHour, subDays } from 'date-fns';
 
-import { dayDatasQuery, poolsQuery, poolQuery } from '../graphql/queries/exchange';
-import { farmQuery, farmsQuery } from '@/graphql/queries/masterchef';
+import { dayDatasQuery, poolsQuery, poolQuery, poolByPairQuery } from '../graphql/queries/exchange';
+// import { dayDatasQuery, poolsQuery, poolQuery } from '../graphql/queries/exchange';
+import { farmQuery, farmsQuery, masterchefMetricsQuery } from '../graphql/queries/masterchef';
 
 import { Pool as GraphQLFarmV2 } from '@/graphql/generated/masterchefv2';
 import { Pool as GraphQLFarmV3 } from '@/graphql/generated/masterchefv3';
@@ -62,7 +63,7 @@ type Hat = {
  * Same for farms.
  */
 type Pool = object;
-type Farm = object & { timestamp: string };
+type Farm = object; // & { timestamp: string; tvl: number; apy: number; apr: number };
 
 type GraphFarmsV2Response = { pools: Array<GraphQLFarmV2> };
 type GraphFarmsV3Response = { pools: Array<GraphQLFarmV3> };
@@ -383,13 +384,49 @@ class FinanceService {
   public async getFarms(offset: number, limit: number): Promise<FarmsPage> {
     const v2farms = await this.masterchefv2Client.request<GraphFarmsV2Response>(farmsQuery);
     const v3farms = await this.masterchefv3Client.request<GraphFarmsV3Response>(farmsQuery);
-
     const allFarms = this.joinFarms(v2farms.pools, v3farms.pools);
+
+    const options: TokenPriceRequestParams = {
+      address: JOE_TOKEN_ADDRESS,
+      chain: 'avalanche',
+      exchange: 'TraderJoe',
+    };
+    const joePrice = (await Moralis.Web3API.token.getTokenPrice(options)).usdPrice;
+    const masterchefv2Response = await this.masterchefv2Client.request(masterchefMetricsQuery);
+    const poolsResponse = await this.exchangeClient.request(poolByPairQuery, {
+      pairs: allFarms.map(f => f.pair.toLowerCase()),
+    });
 
     return {
       offset,
       limit,
-      farms: allFarms.slice(offset, limit),
+      farms: allFarms.slice(offset, limit).map(farm => this.enrichFarm(farm, joePrice, poolsResponse.pairs, masterchefv2Response)),
+    };
+  }
+
+  private enrichFarm(farm: object, joePriceUSD: number, pools: Array<object>, masterchefv2Response: Array<object>): Farm {
+    const SECONDS_PER_YEAR = 86400 * 365;
+    const pool = pools.find(p => p.id === farm.pair);
+
+    // If this farm doesn't have a pool, return the farm without enrichment
+    if (!pool) {
+      return farm;
+    }
+
+    const liquidity = parseFloat(pool.reserveUSD); // Liquidity == Pool TVL
+
+    const { totalAllocPoint, joePerSec } = masterchefv2Response.masterChef;
+    const joePerSecNumber = new BN(joePerSec).div(BN_1E18).toNumber();
+
+    const tvl = (parseFloat(farm.jlpBalance) * liquidity) / parseFloat(pool.totalSupply);
+
+    const farmApr = ((((joePerSecNumber * SECONDS_PER_YEAR) / tvl) * parseFloat(farm.allocPoint)) / parseFloat(totalAllocPoint) / 2) * joePriceUSD;
+
+    return {
+      ...farm,
+      tvl,
+      apy: Utils.calculatePoolAPY(farmApr),
+      apr: farmApr,
     };
   }
 
@@ -401,29 +438,45 @@ class FinanceService {
    */
   public async getFarm(farmId: string): Promise<Farm> {
     const [farmAddress, masterchefAddress] = farmId.split('-');
-    let farm: GraphFarmsV2Response | GraphFarmsV3Response;
+    let farmResponse: GraphFarmsV2Response | GraphFarmsV3Response;
 
     if (masterchefAddress?.toLowerCase() === MASTERCHEFV2_ADDRESS) {
-      farm = await this.masterchefv2Client.request<GraphFarmsV2Response>(farmQuery, {
+      farmResponse = await this.masterchefv2Client.request<GraphFarmsV2Response>(farmQuery, {
         pair: farmAddress,
       });
     } else if (masterchefAddress?.toLowerCase() === MASTERCHEFV3_ADDRESS) {
-      farm = await this.masterchefv3Client.request<GraphFarmsV3Response>(farmQuery, {
+      farmResponse = await this.masterchefv3Client.request<GraphFarmsV3Response>(farmQuery, {
         pair: farmAddress,
       });
     } else {
       throw new createError.BadRequest('Invalid Farm id');
     }
 
-    if (!farm.pools || farm.pools.length === 0) {
+    if (!farmResponse.pools || farmResponse.pools.length === 0) {
       throw new createError.NotFound('Farm not found');
     }
 
-    if (farm.pools.length > 1) {
+    if (farmResponse.pools.length > 1) {
       throw new Error('Several farms were found');
     }
 
-    return farm.pools[0];
+    const farm = farmResponse.pools[0];
+
+    const options: TokenPriceRequestParams = {
+      address: JOE_TOKEN_ADDRESS,
+      chain: 'avalanche',
+      exchange: 'TraderJoe',
+    };
+    const joePrice = (await Moralis.Web3API.token.getTokenPrice(options)).usdPrice;
+    const masterchefv2Response = await this.masterchefv2Client.request(masterchefMetricsQuery);
+    const poolResponse = await this.exchangeClient.request(poolByPairQuery, {
+      pairs: [farm.pair.toLowerCase()],
+    });
+    console.log(poolResponse);
+
+    const enrichedFarm = this.enrichFarm(farm, joePrice, poolResponse.pairs, masterchefv2Response);
+
+    return enrichedFarm;
   }
 }
 
