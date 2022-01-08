@@ -141,3 +141,12 @@ export const poolQuery = gql`
   }
   ${poolFieldsFragment}
 `;
+
+export const poolByPairQuery = gql`
+  query poolByPairQuery($dateAfter: Int! = ${TRADER_JOE_INITIAL_DATE}, $pairs: [String!] = []) {
+    pairs(where: { id_in: $pairs }) {
+      ...poolFields
+    }
+  }
+  ${poolFieldsFragment}
+`;
