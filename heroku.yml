@@ -1,7 +1,7 @@
 setup:
   addons:
-  - plan: memcachedcloud:30
-    as: MEMCACHED
+    - plan: memcachedcloud:30
+      as: MEMCACHED
 build:
   docker:
-    web: Dockerfile
+    web: bin/start-nginx-debug npm run start
