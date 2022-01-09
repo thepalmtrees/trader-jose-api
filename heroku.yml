@@ -1,0 +1,7 @@
+setup:
+  addons:
+  - plan: memcachedcloud:30
+    as: MEMCACHED
+build:
+  docker:
+    web: Dockerfile
