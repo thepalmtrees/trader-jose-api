@@ -34,7 +34,7 @@ class App {
   }
 
   public listen() {
-    if (process.env.PROD === 'production') {
+    if (this.env === 'production') {
       this.app.listen('/tmp/nginx.socket', () => {
         logger.info(`=================================`);
         logger.info(`======= ENV: ${this.env} =======`);
