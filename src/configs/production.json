@@ -6,7 +6,7 @@
         "dir": "../logs"
     },
     "cors": {
-        "origin": "your.domain.com",
+        "origin": "*",
         "credentials": true
     }
 }
