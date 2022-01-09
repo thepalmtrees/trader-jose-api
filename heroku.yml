@@ -4,4 +4,4 @@ setup:
     as: MEMCACHED
 build:
   docker:
-    api: Dockerfile
+    web: Dockerfile
