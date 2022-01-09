@@ -14,6 +14,7 @@ import { Routes } from '@interfaces/routes.interface';
 import errorMiddleware from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
 import Moralis from 'moralis/node';
+import fs from 'fs';
 
 class App {
   public app: express.Application;
@@ -33,12 +34,22 @@ class App {
   }
 
   public listen() {
-    this.app.listen(this.port, () => {
-      logger.info(`=================================`);
-      logger.info(`======= ENV: ${this.env} =======`);
-      logger.info(`🚀 App listening on the port ${this.port}`);
-      logger.info(`=================================`);
-    });
+    if (process.env.PROD === 'production') {
+      this.app.listen('/tmp/nginx.socket', () => {
+        logger.info(`=================================`);
+        logger.info(`======= ENV: ${this.env} =======`);
+        logger.info(`🚀 App listening on /tmp/nginx.socket`);
+        logger.info(`=================================`);
+        fs.openSync('/tmp/app-initialized', 'w');
+      });
+    } else {
+      this.app.listen(this.port, () => {
+        logger.info(`=================================`);
+        logger.info(`======= ENV: ${this.env} =======`);
+        logger.info(`🚀 App listening on the port ${this.port}`);
+        logger.info(`=================================`);
+      });
+    }
   }
 
   public getServer() {
