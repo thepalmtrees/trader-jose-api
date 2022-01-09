@@ -33,7 +33,6 @@
       "@utils/*": ["utils/*"]
     },
     "skipLibCheck": true,
-    "types": ["jest", "node"]
   },
   "include": ["src/**/*.ts", "src/**/*.json", ".env"],
   "exclude": ["node_modules"]
