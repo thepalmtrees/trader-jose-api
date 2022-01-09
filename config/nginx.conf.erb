@@ -1,0 +1,66 @@
+# Original default config file here https://github.com/heroku/heroku-buildpack-nginx/blob/main/config/nginx.conf.erb
+daemon off;
+# Heroku dynos have at least 4 cores.
+worker_processes <%= ENV['NGINX_WORKERS'] || 4 %>;
+
+events {
+	use epoll;
+	accept_mutex on;
+	worker_connections <%= ENV['NGINX_WORKER_CONNECTIONS'] || 1024 %>;
+}
+
+http {
+	gzip on;
+	gzip_comp_level 2;
+	gzip_min_length 512;
+	gzip_proxied any; # Heroku router sends Via header
+
+	server_tokens off;
+
+	log_format l2met 'measure#nginx.service=$request_time request_id=$http_x_request_id $remote_addr - $remote_user [$time_local] "$request" ';
+	access_log <%= ENV['NGINX_ACCESS_LOG_PATH'] || 'logs/nginx/access.log' %> l2met;
+	error_log <%= ENV['NGINX_ERROR_LOG_PATH'] || 'logs/nginx/error.log' %>;
+
+	include mime.types;
+	default_type application/octet-stream;
+	sendfile on;
+
+	# Must read the body in 5 seconds.
+	client_body_timeout 5;
+
+    # the states are kept in a 10 megabyte zone “one”, and an average request processing rate for this zone cannot exceed 1000 request per second.
+    limit_req_zone $binary_remote_addr zone=one:10m rate=1000r/s; # 1000r/s, or one request every 0.001 seconds
+
+    proxy_cache_path /tmp/cache keys_zone=cache:10m levels=1:2 inactive=600s 
+    max_size=100m;
+
+	upstream app_server {
+		server unix:/tmp/nginx.socket fail_timeout=0;
+	}
+
+	server {
+		listen <%= ENV["PORT"] %>;
+		server_name _;
+		keepalive_timeout 5;
+
+        proxy_cache cache;
+        proxy_cache_valid 200 1s;
+        proxy_cache_use_stale updating; # serve cached content while cache is being updated
+        proxy_cache_lock on; # queue up incoming requests while cache is being updated
+
+		location / {
+			# Uncomment this if statement to force SSL/redirect http -> https
+			# if ($http_x_forwarded_proto != "https") {
+			#   return 301 https://$host$request_uri;
+			# }
+            limit_req zone=one burst=100 nodelay;
+            limit_req_log_level warn;
+            proxy_http_version 1.1;
+
+			proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+			proxy_set_header Host $http_host;
+			proxy_redirect off;
+			proxy_pass http://app_server;
+		}
+	}
+}
