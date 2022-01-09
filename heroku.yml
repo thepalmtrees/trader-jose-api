@@ -4,4 +4,4 @@ setup:
       as: MEMCACHED
 build:
   docker:
-    web: bin/start-nginx-debug npm run start
+    web: Dockerfile
