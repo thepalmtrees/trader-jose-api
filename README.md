@@ -1,4 +1,4 @@
-# trader-jose-api
+# New Trader Joe API
 
 A brand new Trader Joe API
 
