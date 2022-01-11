@@ -29,7 +29,7 @@ import { dayDatasQuery, poolsQuery, poolQuery, poolByPairQuery } from '../graphq
 // import { dayDatasQuery, poolsQuery, poolQuery } from '../graphql/queries/exchange';
 import { farmQuery, farmsQuery, masterchefMetricsQuery } from '../graphql/queries/masterchef';
 
-import { Pool as GraphQLFarmV2 } from '@/graphql/generated/masterchefv2';
+import { MasterChef, Pool as GraphQLFarmV2 } from '@/graphql/generated/masterchefv2';
 import { Pool as GraphQLFarmV3 } from '@/graphql/generated/masterchefv3';
 import { DayData, Pair, PairHourData } from '@/graphql/generated/exchange';
 import Utils from './utils';
@@ -60,23 +60,41 @@ type Hat = {
  * For now, a Pool is just an object.
  * We will need to expose more granular types once
  * we know what we want to return.
- * Same for farms.
  */
 type Pool = object;
-type Farm = object; // & { timestamp: string; tvl: number; apy: number; apr: number };
+
+type Farm = {
+  id: string;
+  pair: string;
+  allocPoint: string;
+  lastRewardTimestamp: string;
+  accJoePerShare: string;
+  jlpBalance: string;
+  balance: string;
+  userCount: string;
+  owner: {
+    id: string;
+    joePerSec: string;
+    totalAllocPoint: string;
+  };
+  timestamp: string;
+  tvl: number | null;
+  apy: number | null;
+  apr: number | null;
+};
 
 type GraphFarmsV2Response = { pools: Array<GraphQLFarmV2> };
 type GraphFarmsV3Response = { pools: Array<GraphQLFarmV3> };
+type GraphMasterChefV2Response = { masterChef: MasterChef };
+
 type GraphDayResponse = { dayDatas: Array<DayData> };
 type GraphPoolsResponse = { pairs: Array<Pair> };
 
 type FarmsPage = {
   offset: number;
   limit: number;
-  farms: Farms;
+  farms: Array<Farm>;
 };
-
-type Farms = Array<GraphQLFarmV2 | GraphQLFarmV3>;
 
 type PoolsPage = {
   offset: number;
@@ -359,9 +377,9 @@ class FinanceService {
     }, 0);
   }
 
-  private joinFarms(farms1: Array<GraphQLFarmV2>, farms2: Array<GraphQLFarmV3>): Farms {
+  private joinFarms(farms1: Array<GraphQLFarmV2>, farms2: Array<GraphQLFarmV3>): Array<GraphQLFarmV2 | GraphQLFarmV3> {
     // TODO: We need to build our own types at some point and convert from graphql types to ours.
-    const allFarms: Farms = farms1.concat(farms2 as unknown as GraphQLFarmV2);
+    const allFarms: Array<GraphQLFarmV3 | GraphQLFarmV2> = farms1.concat(farms2 as unknown as GraphQLFarmV2);
 
     const allFarmsWithTimestamp = allFarms.map(farm => {
       return {
@@ -392,30 +410,35 @@ class FinanceService {
       exchange: 'TraderJoe',
     };
     const joePrice = (await Moralis.Web3API.token.getTokenPrice(options)).usdPrice;
-    const masterchefv2Response = await this.masterchefv2Client.request(masterchefMetricsQuery);
-    const poolsResponse = await this.exchangeClient.request(poolByPairQuery, {
+    const masterchefv2Response = await this.masterchefv2Client.request<GraphMasterChefV2Response>(masterchefMetricsQuery);
+    const poolsResponse = await this.exchangeClient.request<GraphPoolsResponse>(poolByPairQuery, {
       pairs: allFarms.map(f => f.pair.toLowerCase()),
     });
 
     return {
       offset,
       limit,
-      farms: allFarms.slice(offset, limit).map(farm => this.enrichFarm(farm, joePrice, poolsResponse.pairs, masterchefv2Response)),
+      farms: allFarms.slice(offset, limit).map(farm => this.enrichFarm(farm, joePrice, poolsResponse.pairs, masterchefv2Response.masterChef)),
     };
   }
 
-  private enrichFarm(farm: object, joePriceUSD: number, pools: Array<object>, masterchefv2Response: Array<object>): Farm {
+  private enrichFarm(farm: GraphQLFarmV2 | GraphQLFarmV3, joePriceUSD: number, pools: Array<Pair>, masterChef: MasterChef): Farm {
     const SECONDS_PER_YEAR = 86400 * 365;
     const pool = pools.find(p => p.id === farm.pair);
 
     // If this farm doesn't have a pool, return the farm without enrichment
     if (!pool) {
-      return farm;
+      return {
+        ...farm,
+        tvl: null,
+        apr: null,
+        apy: null,
+      };
     }
 
     const liquidity = parseFloat(pool.reserveUSD); // Liquidity == Pool TVL
 
-    const { totalAllocPoint, joePerSec } = masterchefv2Response.masterChef;
+    const { totalAllocPoint, joePerSec } = masterChef;
     const joePerSecNumber = new BN(joePerSec).div(BN_1E18).toNumber();
 
     const tvl = (parseFloat(farm.jlpBalance) * liquidity) / parseFloat(pool.totalSupply);
@@ -468,13 +491,12 @@ class FinanceService {
       exchange: 'TraderJoe',
     };
     const joePrice = (await Moralis.Web3API.token.getTokenPrice(options)).usdPrice;
-    const masterchefv2Response = await this.masterchefv2Client.request(masterchefMetricsQuery);
-    const poolResponse = await this.exchangeClient.request(poolByPairQuery, {
+    const masterchefv2Response = await this.masterchefv2Client.request<GraphMasterChefV2Response>(masterchefMetricsQuery);
+    const poolResponse = await this.exchangeClient.request<GraphPoolsResponse>(poolByPairQuery, {
       pairs: [farm.pair.toLowerCase()],
     });
-    console.log(poolResponse);
 
-    const enrichedFarm = this.enrichFarm(farm, joePrice, poolResponse.pairs, masterchefv2Response);
+    const enrichedFarm = this.enrichFarm(farm, joePrice, poolResponse.pairs, masterchefv2Response.masterChef);
 
     return enrichedFarm;
   }
