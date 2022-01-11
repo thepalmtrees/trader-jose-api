@@ -26,7 +26,6 @@ import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { startOfHour, subDays } from 'date-fns';
 
 import { dayDatasQuery, poolsQuery, poolQuery, poolByPairQuery } from '../graphql/queries/exchange';
-// import { dayDatasQuery, poolsQuery, poolQuery } from '../graphql/queries/exchange';
 import { farmQuery, farmsQuery, masterchefMetricsQuery } from '../graphql/queries/masterchef';
 
 import { MasterChef, Pool as GraphQLFarmV2 } from '@/graphql/generated/masterchefv2';
