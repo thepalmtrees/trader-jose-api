@@ -1,4 +1,4 @@
-import { TRADER_JOE_INITIAL_DATE } from '@/configs';
+import { MASTERCHEFV2_ADDRESS, TRADER_JOE_INITIAL_DATE } from '@/configs';
 import gql from 'graphql-tag';
 
 const farmFieldsFragment = gql`
@@ -8,6 +8,7 @@ const farmFieldsFragment = gql`
     allocPoint
     lastRewardTimestamp
     accJoePerShare
+    jlpBalance
     balance
     userCount
     owner {
@@ -35,4 +36,14 @@ export const farmQuery = gql`
     }
   }
   ${farmFieldsFragment}
+`;
+
+export const masterchefMetricsQuery = gql`
+  query masterchefMetricsQuery($dateAfter: Int! = ${TRADER_JOE_INITIAL_DATE}, $id: String! = "${MASTERCHEFV2_ADDRESS}") {
+    masterChef(id: $id) {
+      id
+      joePerSec
+      totalAllocPoint
+    }
+  }
 `;
