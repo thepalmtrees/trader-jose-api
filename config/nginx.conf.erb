@@ -48,13 +48,7 @@ http {
         proxy_cache_use_stale updating; # serve cached content while cache is being updated
         proxy_cache_lock on; # queue up incoming requests while cache is being updated
 
-        location / {
-            set            $memcached_key "$uri?$args";
-            memcached_pass <%= ENV["MEMCACHEDCLOUD_SERVERS"] %>;
-            error_page     404 502 504 = @fallback;
-        }
-
-		location @fallback {
+		location / {
 			# Uncomment this if statement to force SSL/redirect http -> https
 			# if ($http_x_forwarded_proto != "https") {
 			#   return 301 https://$host$request_uri;
