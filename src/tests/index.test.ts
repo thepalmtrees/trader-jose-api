@@ -10,7 +10,7 @@ describe('Testing Index', () => {
   describe('[GET] /', () => {
     it('response statusCode 200', () => {
       const route = new V1Route();
-      const app = new App([route]);
+      const app = new App([route])
 
       return request(app.getServer()).get('/status').expect(200);
     });
