@@ -1,3 +1,8 @@
+import { GRAPH_EXCHANGE_URI } from '@/configs';
+import { Pair, PairHourData } from '@/graphql/generated/exchange';
+import { poolsQuery, poolQuery } from '@/graphql/queries/exchange';
+import { startOfHour, subDays } from 'date-fns';
+import { GraphQLClient } from 'graphql-request';
 import Moralis from 'moralis/node';
 import Utils from './utils';
 
@@ -15,8 +20,12 @@ type PoolsPage = {
   pools: Array<Pool>;
 };
 
+type GraphPoolsResponse = { pairs: Array<Pair> };
+
 class PoolService {
-  public async getPools(offset: number, limit: number): Promise<PoolsPage> {
+  exchangeClient = new GraphQLClient(GRAPH_EXCHANGE_URI, { headers: {} });
+
+  public async getPoolsFromCovalent(offset: number, limit: number): Promise<PoolsPage> {
     // 1. Query MongoDB pools with offset & limit
     const Pool = Moralis.Object.extend('Pool');
     const query = new Moralis.Query(Pool);
@@ -47,7 +56,7 @@ class PoolService {
     };
   }
 
-  public async getPool(requestedToken1Address: string, requestedToken2Address: string): Promise<Pool> {
+  public async getPoolFromCovalent(requestedToken1Address: string, requestedToken2Address: string): Promise<Pool> {
     const token1Address = Utils.resolveTokenAddress(requestedToken1Address).toLowerCase();
     const token2Address = Utils.resolveTokenAddress(requestedToken2Address).toLowerCase();
 
@@ -106,6 +115,74 @@ class PoolService {
       apy: Utils.calculatePoolAPY(apr),
       fees24hs: fees24hs,
     };
+  }
+
+  public async getPoolsFromTheGraph(offset: number, limit: number): Promise<PoolsPage> {
+    const pairsData = await this.exchangeClient.request<GraphPoolsResponse>(poolsQuery, {
+      skip: offset,
+      first: limit,
+    });
+
+    return {
+      offset,
+      limit,
+      pools: pairsData.pairs.map(x => this.enrichPool(x)).sort((a, b) => b.tvl - a.tvl),
+    };
+  }
+
+  public async getPoolFromTheGraph(requestedToken1Address: string, requestedToken2Address: string): Promise<Pool> {
+    const yesterdayInSeconds = startOfHour(subDays(Date.now(), 1)).getTime() / 1000;
+
+    const token1Address = Utils.resolveTokenAddress(requestedToken1Address).toLowerCase();
+    const token2Address = Utils.resolveTokenAddress(requestedToken2Address).toLowerCase();
+
+    const pairData = await this.exchangeClient.request<GraphPoolsResponse>(poolQuery, {
+      tokens: [token1Address, token2Address],
+      dateAfter: yesterdayInSeconds,
+    });
+
+    if (!pairData.pairs || pairData.pairs.length === 0) {
+      // return a 404 error.
+      throw new Error('Pool not found');
+    }
+
+    if (pairData.pairs.length > 1) {
+      throw new Error('Several pools were found');
+    }
+
+    const pool = pairData.pairs[0];
+
+    return this.enrichPool(pool);
+  }
+
+  private enrichPool(pool: Pair) {
+    const { hourData, reserveUSD } = pool;
+
+    const tvl = parseFloat(reserveUSD);
+
+    const volume24hs = this.getVolume24hs(hourData);
+    const fees24hs = Utils.calculatePoolFees24h(volume24hs);
+
+    const apr = Utils.calculatePoolAPR(fees24hs, tvl);
+    const apy = Utils.calculatePoolAPY(apr);
+
+    return {
+      ...pool,
+      volume24hs,
+      tvl,
+      apr,
+      apy,
+      fees24hs,
+    };
+  }
+
+  private getVolume24hs(last24hours: PairHourData[]): number {
+    return last24hours.reduce((accum, hour) => {
+      if (parseFloat(hour.volumeUSD) === 0) {
+        return accum + parseFloat(hour.untrackedVolumeUSD);
+      }
+      return accum + parseFloat(hour.volumeUSD);
+    }, 0);
   }
 }
 

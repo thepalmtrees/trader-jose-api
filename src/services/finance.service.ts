@@ -20,11 +20,9 @@ import Moralis from 'moralis/node';
 import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
 import JoeBarContractABI from '../abis/JoeBarContractABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
-import { startOfHour, subDays } from 'date-fns';
+import { dayDatasQuery } from '../graphql/queries/exchange';
 
-import { dayDatasQuery, poolsQuery, poolQuery } from '../graphql/queries/exchange';
-
-import { DayData, Pair, PairHourData } from '@/graphql/generated/exchange';
+import { DayData } from '@/graphql/generated/exchange';
 import Utils from './utils';
 
 type TokenPriceRequestParams = {
@@ -49,21 +47,7 @@ type Hat = {
   image?: string;
 };
 
-/**
- * For now, a Pool is just an object.
- * We will need to expose more granular types once
- * we know what we want to return.
- */
-type Pool = object;
-
 type GraphDayResponse = { dayDatas: Array<DayData> };
-type GraphPoolsResponse = { pairs: Array<Pair> };
-
-type PoolsPage = {
-  offset: number;
-  limit: number;
-  pools: Array<Pool>;
-};
 
 class FinanceService {
   blocksClient = new GraphQLClient(GRAPH_BLOCKS_URI, { headers: {} });
@@ -270,74 +254,6 @@ class FinanceService {
     const lendingState = await this.getLendingState();
 
     return lendingState.totalBorrow;
-  }
-
-  public async getPools(offset: number, limit: number): Promise<PoolsPage> {
-    const pairsData = await this.exchangeClient.request<GraphPoolsResponse>(poolsQuery, {
-      skip: offset,
-      first: limit,
-    });
-
-    return {
-      offset,
-      limit,
-      pools: pairsData.pairs.map(x => this.enrichPool(x)).sort((a, b) => b.tvl - a.tvl),
-    };
-  }
-
-  public async getPool(requestedToken1Address: string, requestedToken2Address: string): Promise<Pool> {
-    const yesterdayInSeconds = startOfHour(subDays(Date.now(), 1)).getTime() / 1000;
-
-    const token1Address = Utils.resolveTokenAddress(requestedToken1Address).toLowerCase();
-    const token2Address = Utils.resolveTokenAddress(requestedToken2Address).toLowerCase();
-
-    const pairData = await this.exchangeClient.request<GraphPoolsResponse>(poolQuery, {
-      tokens: [token1Address, token2Address],
-      dateAfter: yesterdayInSeconds,
-    });
-
-    if (!pairData.pairs || pairData.pairs.length === 0) {
-      // return a 404 error.
-      throw new Error('Pool not found');
-    }
-
-    if (pairData.pairs.length > 1) {
-      throw new Error('Several pools were found');
-    }
-
-    const pool = pairData.pairs[0];
-
-    return this.enrichPool(pool);
-  }
-
-  private enrichPool(pool: Pair) {
-    const { hourData, reserveUSD } = pool;
-
-    const tvl = parseFloat(reserveUSD);
-
-    const volume24hs = this.getVolume24hs(hourData);
-    const fees24hs = Utils.calculatePoolFees24h(volume24hs);
-
-    const apr = Utils.calculatePoolAPR(fees24hs, tvl);
-    const apy = Utils.calculatePoolAPY(apr);
-
-    return {
-      ...pool,
-      volume24hs,
-      tvl,
-      apr,
-      apy,
-      fees24hs,
-    };
-  }
-
-  private getVolume24hs(last24hours: PairHourData[]): number {
-    return last24hours.reduce((accum, hour) => {
-      if (parseFloat(hour.volumeUSD) === 0) {
-        return accum + parseFloat(hour.untrackedVolumeUSD);
-      }
-      return accum + parseFloat(hour.volumeUSD);
-    }, 0);
   }
 }
 

@@ -1,10 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
-import FinanceService from '@/services/finance.service';
 import PoolService from '@/services/pool.service';
 
 class PoolController {
-  public financeService = new FinanceService();
-  public poolService = new PoolService();
+  private poolService = new PoolService();
 
   public getPools = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -14,9 +12,9 @@ class PoolController {
 
       let poolsPage;
       if (source === 'thegraph') {
-        poolsPage = await this.financeService.getPools(offset, limit);
+        poolsPage = await this.poolService.getPoolsFromTheGraph(offset, limit);
       } else {
-        poolsPage = await this.poolService.getPools(offset, limit);
+        poolsPage = await this.poolService.getPoolsFromCovalent(offset, limit);
       }
 
       res.status(200).json(poolsPage);
@@ -33,9 +31,9 @@ class PoolController {
 
       let pool;
       if (source === 'thegraph') {
-        pool = await this.financeService.getPool(token1Address, token2Address);
+        pool = await this.poolService.getPoolFromTheGraph(token1Address, token2Address);
       } else {
-        pool = await this.poolService.getPool(token1Address, token2Address);
+        pool = await this.poolService.getPoolFromCovalent(token1Address, token2Address);
       }
 
       res.status(200).json(pool);
