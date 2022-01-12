@@ -20,6 +20,7 @@ import { MasterChef, Pool as GraphQLFarmV2 } from '@/graphql/generated/masterche
 import { Pool as GraphQLFarmV3 } from '@/graphql/generated/masterchefv3';
 import { Pair } from '@/graphql/generated/exchange';
 import Utils from './utils';
+import { Farm, FarmsPage } from '@/interfaces/types';
 
 type TokenPriceRequestParams = {
   chain: 'avalanche';
@@ -27,38 +28,11 @@ type TokenPriceRequestParams = {
   exchange: string;
 };
 
-type Farm = {
-  id: string;
-  pair: string;
-  allocPoint: string;
-  lastRewardTimestamp: string;
-  accJoePerShare: string;
-  jlpBalance: string;
-  balance: string;
-  userCount: string;
-  owner: {
-    id: string;
-    joePerSec: string;
-    totalAllocPoint: string;
-  };
-  timestamp: string;
-  tvl: number | null;
-  apy: number | null;
-  apr: number | null;
-};
-
 type GraphFarmsV2Response = { pools: Array<GraphQLFarmV2> };
 type GraphFarmsV3Response = { pools: Array<GraphQLFarmV3> };
 type GraphMasterChefV2Response = { masterChef: MasterChef };
 
 type GraphPoolsResponse = { pairs: Array<Pair> };
-
-type FarmsPage = {
-  offset: number;
-  limit: number;
-  farms: Array<Farm>;
-};
-
 class FarmService {
   exchangeClient = new GraphQLClient(GRAPH_EXCHANGE_URI, { headers: {} });
   masterchefv2Client = new GraphQLClient(GRAPH_MASTERCHEFV2_URI, { headers: {} });
@@ -116,7 +90,8 @@ class FarmService {
     // If this farm doesn't have a pool, return the farm without enrichment
     if (!pool) {
       return {
-        ...farm,
+        id: farm.id,
+        pair: farm.pair,
         tvl: null,
         apr: null,
         apy: null,
@@ -133,7 +108,8 @@ class FarmService {
     const farmApr = ((((joePerSecNumber * SECONDS_PER_YEAR) / tvl) * parseFloat(farm.allocPoint)) / parseFloat(totalAllocPoint) / 2) * joePriceUSD;
 
     return {
-      ...farm,
+      id: farm.id,
+      pair: farm.pair,
       tvl,
       apy: Utils.calculatePoolAPY(farmApr),
       apr: farmApr,

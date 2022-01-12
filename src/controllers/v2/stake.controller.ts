@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import StakeService from '@/services/stake.service';
+import { StakeMetrics } from '@/interfaces/types';
 
 class StakeController {
   private stakeService = new StakeService();
@@ -13,7 +14,16 @@ class StakeController {
       const apr7d = 0;
       const apyAverage = 0;
 
-      res.status(200).json({ totalStakedUSD, oneDayFees, apr24h, apy24h, apyAverage, apr7d });
+      const stakeMetrics: StakeMetrics = {
+        totalStakedUSD,
+        oneDayFees,
+        apr24h,
+        apy24h,
+        apyAverage,
+        apr7d,
+      };
+
+      res.status(200).json(stakeMetrics);
     } catch (error) {
       next(error);
     }
