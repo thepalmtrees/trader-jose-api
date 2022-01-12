@@ -46,3 +46,9 @@ moralis-admin-cli watch-cloud-folder --moralisApiKey {MORALIS_API_KEY} --moralis
 ```
 so that the code is in sync with what you have in your laptop. 
 
+## Dev Utils
+
+### Typescript types to JSON schema
+
+1. `npm install --save-dev typescript-json-schema`
+2. `npx typescript-json-schema tsconfig.json FarmsPage --required`

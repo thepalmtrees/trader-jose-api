@@ -71,8 +71,8 @@
     "moralis": "^0.0.176",
     "morgan": "^1.10.0",
     "pm2": "^5.1.0",
-    "swagger-jsdoc": "^6.0.0",
-    "swagger-ui-express": "^4.1.6",
+    "swagger-jsdoc": "^6.1.0",
+    "swagger-ui-express": "^4.3.0",
     "ts-jest": "^27.0.3",
     "winston": "^3.3.3",
     "winston-daily-rotate-file": "^4.5.5"

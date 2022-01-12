@@ -12,6 +12,187 @@ info:
 tags:
   - name: Trader Joe API
     description: Brand new Trader Joe API
+components:
+  schemas:
+    Hat: 
+      {
+        "properties": {
+            "description": {
+                "type": "string"
+            },
+            "external_url": {
+                "type": "string"
+            },
+            "id": {
+                "type": "string"
+            },
+            "image": {
+                "type": "string"
+            },
+            "name": {
+                "type": "string"
+            }
+        },
+        "required": [
+            "name"
+        ],
+        "type": "object"
+      }
+    StakeMetrics:
+      {
+        "properties": {
+            "apr24h": {
+                "type": "number"
+            },
+            "apr7d": {
+                "type": "number"
+            },
+            "apy24h": {
+                "type": "number"
+            },
+            "apyAverage": {
+                "type": "number"
+            },
+            "oneDayFees": {
+                "type": "number"
+            },
+            "totalStakedUSD": {
+                "type": "number"
+            }
+        },
+        "required": [
+            "apr24h",
+            "apr7d",
+            "apy24h",
+            "apyAverage",
+            "oneDayFees",
+            "totalStakedUSD"
+        ],
+        "type": "object"
+      }
+    Pool:
+      {
+        "properties": {
+            "address": {
+                "type": "string"
+            },
+            "apr": {
+                "type": "number"
+            },
+            "apy": {
+                "type": "number"
+            },
+            "fees24hs": {
+                "type": "number"
+            },
+            "token0": {
+                "type": "string"
+            },
+            "token0_symbol": {
+                "type": "string"
+            },
+            "token1": {
+                "type": "string"
+            },
+            "token1_symbol": {
+                "type": "string"
+            },
+            "tvl": {
+                "type": "number"
+            },
+            "volume24hs": {
+                "type": "number"
+            }
+        },
+        "required": [
+            "address",
+            "apr",
+            "apy",
+            "fees24hs",
+            "token0",
+            "token0_symbol",
+            "token1",
+            "token1_symbol",
+            "tvl",
+            "volume24hs"
+        ],
+        "type": "object"
+      }
+    PoolsPage:
+      {
+        "properties": {
+            "limit": {
+                "type": "number"
+            },
+            "offset": {
+                "type": "number"
+            },
+            "pools": {
+                "items": {
+                  "$ref": "#/components/schemas/Pool"
+                },
+                "type": "array"
+            }
+        },
+        "required": [
+            "limit",
+            "offset",
+            "pools"
+        ],
+        "type": "object"
+      }
+    Farm:
+      {
+        "properties": {
+            "apr": {
+                "type": "number"
+            },
+            "apy": {
+                "type": "number"
+            },
+            "id": {
+                "type": "string"
+            },
+            "pair": {
+                "type": "string"
+            },
+            "tvl": {
+                "type": "number"
+            }
+        },
+        "required": [
+            "apr",
+            "apy",
+            "id",
+            "pair",
+            "tvl"
+        ],
+        "type": "object"
+      }
+    FarmsPage:
+      {
+        "properties": {
+            "farms": {
+                "items": {
+                    "$ref": "#/components/schemas/Farm"
+                },
+                "type": "array"
+            },
+            "limit": {
+                "type": "number"
+            },
+            "offset": {
+                "type": "number"
+            }
+        },
+        "required": [
+            "farms",
+            "limit",
+            "offset"
+        ],
+        "type": "object"
+    }
+
 paths:
   /status:
     get:
@@ -84,7 +265,7 @@ paths:
           content:
             application/json:
               schema: 
-                $ref: 'hat.json'
+                $ref: '#/components/schemas/Hat'
   /nft/hat/{id}:
     get:
       parameters:
@@ -103,9 +284,8 @@ paths:
           description: OK
           content:
             application/json:
-              schema: # TODO
-                type: string
-                example: 500000000000000000000000000
+              schema: 
+                $ref: '#/components/schemas/Hat'
   /priceavax/{token}:
     get:
       parameters:
@@ -220,10 +400,9 @@ paths:
         '200':
           description: OK
           content:
-            text/plain: # TODO this is actually json
+            application/json:
               schema:
-                type: string
-                example: 148991609094653607326581507
+                $ref: '#/components/schemas/PoolsPage'
   /v2/pools/{token1}/{token2}:
     get:
       parameters:
@@ -246,10 +425,9 @@ paths:
         '200':
           description: OK
           content:
-            text/plain: # TODO this is actually json
+            application/json:
               schema:
-                type: string
-                example: 148991609094653607326581507
+                $ref: '#/components/schemas/Pool'
   /v2/farms:
     get:
       tags:
@@ -259,10 +437,9 @@ paths:
         '200':
           description: OK
           content:
-            text/plain: # TODO this is actually json
+            application/json:
               schema:
-                type: string
-                example: 148991609094653607326581507
+                $ref: '#/components/schemas/FarmsPage'
   /v2/farms/{farmId}:
     get:
       parameters:
@@ -279,7 +456,18 @@ paths:
         '200':
           description: OK
           content:
-            text/plain: # TODO this is actually json
+            application/json:
               schema:
-                type: string
-                example: 148991609094653607326581507
+                $ref: '#/components/schemas/Farm'
+  /v2/stake:
+    get:
+      tags:
+        - Get stake metrics in Trader Joe
+      summary: Get stake metrics in Trader Joe
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StakeMetrics'

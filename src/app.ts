@@ -86,12 +86,12 @@ class App {
       definition: {
         openapi: '3.0.0',
         info: {
-          title: 'Hello World',
+          title: 'Trader Joe API',
           description: 'Trader Joe API',
           version: '1.0.0',
         },
       },
-      apis: ['swagger.yaml', 'hat.json'],
+      apis: ['swagger.yaml'],
     };
 
     const specs = swaggerJSDoc(options);
