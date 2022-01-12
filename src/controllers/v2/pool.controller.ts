@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import PoolService from '@/services/pool.service';
+import { Pool, PoolsPage } from '@/interfaces/types';
 
 class PoolController {
   private poolService = new PoolService();
@@ -10,7 +11,7 @@ class PoolController {
       const limit = parseInt(req.query.limit as string) || 10;
       const source = req.query.source as string;
 
-      let poolsPage;
+      let poolsPage: PoolsPage;
       if (source === 'thegraph') {
         poolsPage = await this.poolService.getPoolsFromTheGraph(offset, limit);
       } else {
@@ -29,7 +30,7 @@ class PoolController {
       const token2Address = req.params.token2 as string;
       const source = req.query.source as string;
 
-      let pool;
+      let pool: Pool;
       if (source === 'thegraph') {
         pool = await this.poolService.getPoolFromTheGraph(token1Address, token2Address);
       } else {

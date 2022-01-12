@@ -8,6 +8,7 @@ import JoeContractABI from '../abis/JoeTokenContractABI.json';
 import { dayDatasQuery } from '../graphql/queries/exchange';
 
 import { DayData } from '@/graphql/generated/exchange';
+import { Hat } from '@/interfaces/types';
 
 type RunContractParams = {
   chain: 'avalanche';
@@ -15,14 +16,6 @@ type RunContractParams = {
   function_name: string;
   abi: any;
   params?: any;
-};
-
-type Hat = {
-  id?: string;
-  external_url?: string;
-  name: string;
-  description?: string;
-  image?: string;
 };
 
 type GraphDayResponse = { dayDatas: Array<DayData> };

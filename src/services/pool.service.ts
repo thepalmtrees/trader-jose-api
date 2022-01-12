@@ -1,24 +1,11 @@
 import { GRAPH_EXCHANGE_URI } from '@/configs';
 import { Pair, PairHourData } from '@/graphql/generated/exchange';
 import { poolsQuery, poolQuery } from '@/graphql/queries/exchange';
+import { Pool, PoolsPage } from '@/interfaces/types';
 import { startOfHour, subDays } from 'date-fns';
 import { GraphQLClient } from 'graphql-request';
 import Moralis from 'moralis/node';
 import Utils from './utils';
-
-/**
- * For now, a Pool is just an object.
- * We will need to expose more granular types once
- * we know what we want to return.
- * Same for farms.
- */
-type Pool = object;
-
-type PoolsPage = {
-  offset: number;
-  limit: number;
-  pools: Array<Pool>;
-};
 
 type GraphPoolsResponse = { pairs: Array<Pair> };
 
@@ -27,8 +14,8 @@ class PoolService {
 
   public async getPoolsFromCovalent(offset: number, limit: number): Promise<PoolsPage> {
     // 1. Query MongoDB pools with offset & limit
-    const Pool = Moralis.Object.extend('Pool');
-    const query = new Moralis.Query(Pool);
+    const poolObject = Moralis.Object.extend('Pool');
+    const query = new Moralis.Query(poolObject);
     query.limit(limit);
     query.skip(offset);
     // these two pools have a weird TVL and number that don't make sense at all. We don't know why, but it may be an issue in Covalent side.
@@ -60,8 +47,8 @@ class PoolService {
     const token1Address = Utils.resolveTokenAddress(requestedToken1Address).toLowerCase();
     const token2Address = Utils.resolveTokenAddress(requestedToken2Address).toLowerCase();
 
-    const Pool = Moralis.Object.extend('Pool');
-    const query = new Moralis.Query(Pool);
+    const poolObject = Moralis.Object.extend('Pool');
+    const query = new Moralis.Query(poolObject);
     const pipeline = [
       {
         match: {
@@ -155,7 +142,7 @@ class PoolService {
     return this.enrichPool(pool);
   }
 
-  private enrichPool(pool: Pair) {
+  private enrichPool(pool: Pair): Pool {
     const { hourData, reserveUSD } = pool;
 
     const tvl = parseFloat(reserveUSD);
@@ -167,7 +154,12 @@ class PoolService {
     const apy = Utils.calculatePoolAPY(apr);
 
     return {
-      ...pool,
+      address: pool.id,
+      token0: pool.token0.id,
+      // TODO: thegraph brings name and symbol but covalent doesn't.
+      token0_symbol: pool.token0.name,
+      token1: pool.token1.id,
+      token1_symbol: pool.token1.name,
       volume24hs,
       tvl,
       apr,
