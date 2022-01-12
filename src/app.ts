@@ -82,15 +82,16 @@ class App {
   }
 
   private initializeSwagger() {
-    const options = {
-      swaggerDefinition: {
+    const options: swaggerJSDoc.OAS3Options = {
+      definition: {
+        openapi: '3.0.0',
         info: {
-          title: 'REST API',
+          title: 'Hello World',
+          description: 'Trader Joe API',
           version: '1.0.0',
-          description: 'Example docs',
         },
       },
-      apis: ['swagger.yaml'],
+      apis: ['swagger.yaml', 'hat.json'],
     };
 
     const specs = swaggerJSDoc(options);

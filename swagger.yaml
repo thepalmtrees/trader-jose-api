@@ -83,9 +83,8 @@ paths:
           description: OK
           content:
             application/json:
-              schema: # TODO
-                type: string
-                example: 500000000000000000000000000
+              schema: 
+                $ref: 'hat.json'
   /nft/hat/{id}:
     get:
       parameters:
@@ -228,13 +227,13 @@ paths:
   /v2/pools/{token1}/{token2}:
     get:
       parameters:
-        - name: address1
+        - name: token1
           in: path
           description: First token of the pair
           required: true
           schema:
             type: string
-        - name: address2
+        - name: token2
           in: path
           description: Second token of the pair
           required: true
