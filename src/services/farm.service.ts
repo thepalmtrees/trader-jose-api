@@ -59,7 +59,7 @@ type FarmsPage = {
   farms: Array<Farm>;
 };
 
-class FinanceService {
+class FarmService {
   exchangeClient = new GraphQLClient(GRAPH_EXCHANGE_URI, { headers: {} });
   masterchefv2Client = new GraphQLClient(GRAPH_MASTERCHEFV2_URI, { headers: {} });
   masterchefv3Client = new GraphQLClient(GRAPH_MASTERCHEFV3_URI, { headers: {} });
@@ -189,4 +189,4 @@ class FinanceService {
   }
 }
 
-export default FinanceService;
+export default FarmService;
