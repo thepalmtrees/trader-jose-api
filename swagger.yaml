@@ -3,12 +3,17 @@ info:
   description: 'This API is the backend of Trader Joe: https://traderjoexyz.com/'
   version: '1.0.0'
   title: 'Trader Joe API'
-  termsOfService: 'http://swagger.io/terms/'
+  termsOfService: 'https://docs.traderjoexyz.com/main/welcome/about-trader-joe'
   contact:
-    email: 'apiteam@swagger.io'
+    email: 'hello@traderjoexyz.com'
   license:
     name: 'Apache 2.0'
     url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+servers:
+  - url: https://trader-joe-2-api.herokuapp.com/
+    description: Production server (uses live data)
+  - url: http://localhost:3000/
+    description: Local development server
 tags:
   - name: Trader Joe API
     description: Brand new Trader Joe API
@@ -191,8 +196,19 @@ components:
             "offset"
         ],
         "type": "object"
-    }
-
+      }
+    PoolsTVL:
+      {
+        "properties": {
+            "tvl": {
+                "type": "number"
+            }
+        },
+        "required": [
+            "tvl"
+        ],
+        "type": "object"
+      }
 paths:
   /status:
     get:

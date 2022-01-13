@@ -51,3 +51,7 @@ export type FarmsPage = {
   limit: number;
   farms: Array<Farm>;
 };
+
+export type PoolsTVL = {
+  tvl: number;
+};

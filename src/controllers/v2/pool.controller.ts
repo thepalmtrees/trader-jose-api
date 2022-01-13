@@ -42,6 +42,16 @@ class PoolController {
       next(error);
     }
   };
+
+  public getPoolsTVL = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const tvl = await this.poolService.getPoolsTVL();
+
+      res.status(200).json({ tvl });
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default PoolController;
