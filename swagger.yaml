@@ -368,45 +368,6 @@ paths:
               schema:
                 type: string
                 example: 2709726995236876976
-  /v2/tvl:
-    get:
-      tags:
-        - Get X TVL
-      summary: Returns the TVL of
-      responses:
-        '200':
-          description: OK
-          content:
-            text/plain: # TODO this is actually json
-              schema:
-                type: string
-                example: 148991609094653607326581507
-  /v2/apr:
-    get:
-      tags:
-        - Get total APR
-      summary: Returns the APR of all Trader Joe pools
-      responses:
-        '200':
-          description: OK
-          content:
-            text/plain: # TODO this is actually json
-              schema:
-                type: string
-                example: 148991609094653607326581507
-  /v2/apy:
-    get:
-      tags:
-        - Get total APY
-      summary: Returns the APY of all Trader Joe pools
-      responses:
-        '200':
-          description: OK
-          content:
-            text/plain: # TODO this is actually json
-              schema:
-                type: string
-                example: 148991609094653607326581507
   /v2/pools:
     get:
       tags:
@@ -419,6 +380,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PoolsPage'
+  /v2/pools/tvl:
+    get:
+      tags:
+        - Get TVL for all pools in Trader Joe
+      summary: Returns the Get TVL for all pools in Trader Joe
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolsTVL'
   /v2/pools/{token1}/{token2}:
     get:
       parameters:
