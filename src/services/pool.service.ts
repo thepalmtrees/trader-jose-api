@@ -7,10 +7,23 @@ import { GraphQLClient } from 'graphql-request';
 import Moralis from 'moralis/node';
 import Utils from './utils';
 
+import { dayDatasQuery } from '../graphql/queries/exchange';
+
+import { DayData } from '@/graphql/generated/exchange';
+type GraphDayResponse = { dayDatas: Array<DayData> };
+
 type GraphPoolsResponse = { pairs: Array<Pair> };
 
 class PoolService {
   exchangeClient = new GraphQLClient(GRAPH_EXCHANGE_URI, { headers: {} });
+
+  public async getPoolsTVL(): Promise<number> {
+    const { dayDatas } = await this.exchangeClient.request<GraphDayResponse>(dayDatasQuery);
+
+    const tvl = parseFloat(dayDatas[0].liquidityUSD);
+
+    return tvl;
+  }
 
   public async getPoolsFromCovalent(offset: number, limit: number): Promise<PoolsPage> {
     // 1. Query MongoDB pools with offset & limit

@@ -5,9 +5,7 @@ import BN from 'bn.js';
 import Moralis from 'moralis/node';
 import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
 import JoeContractABI from '../abis/JoeTokenContractABI.json';
-import { dayDatasQuery } from '../graphql/queries/exchange';
 
-import { DayData } from '@/graphql/generated/exchange';
 import { Hat } from '@/interfaces/types';
 
 type RunContractParams = {
@@ -18,10 +16,8 @@ type RunContractParams = {
   params?: any;
 };
 
-type GraphDayResponse = { dayDatas: Array<DayData> };
-
-class FinanceService {
-  exchangeClient = new GraphQLClient(GRAPH_EXCHANGE_URI, { headers: {} });
+class LegacyJoeService {
+  private exchangeClient = new GraphQLClient(GRAPH_EXCHANGE_URI, { headers: {} });
 
   private async getBalanceOf(address: string): Promise<string> {
     const balanceOfFn: RunContractParams = {
@@ -34,15 +30,6 @@ class FinanceService {
     const balance = await Moralis.Web3API.native.runContractFunction(balanceOfFn);
 
     return balance;
-  }
-
-  // TODO from where do we get this? / TVL of what?
-  public async getTVL(): Promise<number> {
-    const { dayDatas } = await this.exchangeClient.request<GraphDayResponse>(dayDatasQuery);
-
-    const tvl = parseFloat(dayDatas[0].liquidityUSD);
-
-    return tvl;
   }
 
   public async getMaxSupply(): Promise<string> {
@@ -144,4 +131,4 @@ class FinanceService {
   }
 }
 
-export default FinanceService;
+export default LegacyJoeService;
