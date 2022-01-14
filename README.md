@@ -24,7 +24,7 @@ It has also been tested with a `memcached` as a cache backend and it worked fine
 ### Data sources
 The Trader Joe UI, the legacy API and the analytics dashboard fetch data from both [smart contracts](https://github.com/traderjoe-xyz/joe-core) and [thegraph](https://github.com/traderjoe-xyz/joe-subgraphs). 
 
-This new API does the same, but when possible, it also fetches data from different sources, such as [Moralis](https://moralis.io/) (for example token price) or [Covalent](https://www.covalenthq.com/) (pools). Adding more data sources is definitely possible, but at the moment, other sources are not as reliable as the ones being used. For example, Yield Monitor has been considered for farms, but we can rely only in some parts of their response. 
+This new API does the same, but when possible, it also fetches data from different sources, such as [Moralis](https://moralis.io/) (for example token price or calling smart contract methods), [Covalent](https://www.covalenthq.com/) (pools), or Yield Monitor (farms). Adding more data sources is definitely possible, but at the moment, other sources are not as reliable as the ones being used.
 
 The more complete and production-ready these data sources are, the less this API will depend on thegraph. 
 
