@@ -6,11 +6,13 @@ import {
   GRAPH_MASTERCHEFV3_URI,
   MASTERCHEFV2_ADDRESS,
   MASTERCHEFV3_ADDRESS,
+  YIELD_MONITOR_BASE_URI,
 } from '../configs/index';
-
+import fetch from 'node-fetch';
 import { GraphQLClient } from 'graphql-request';
 import BN from 'bn.js';
 import Moralis from 'moralis/node';
+import { URLSearchParams } from 'url';
 import createError from 'http-errors';
 
 import { poolByPairQuery } from '../graphql/queries/exchange';
@@ -28,6 +30,28 @@ type TokenPriceRequestParams = {
   exchange: string;
 };
 
+type YieldMonitorFarm = {
+  poolNumber: string;
+  symbol0Name: string;
+  symbol1Name: string;
+  symbol0address: string;
+  symbol0price: string;
+  symbol1address: string;
+  symbol1price: string;
+  network: string;
+  lpAddress: string;
+  coinsASec: string;
+  tvl: string | null;
+  apy: string; // Can be empty string. It shouldn't
+  apyDaily: string;
+  apyMonthly: string;
+  totalApy: number | null;
+  totalApyDaily: string;
+  totalApyMonthly: string;
+  extraRewards: string | object[] | null;
+  isActive: boolean;
+};
+
 type GraphFarmsV2Response = { pools: Array<GraphQLFarmV2> };
 type GraphFarmsV3Response = { pools: Array<GraphQLFarmV3> };
 type GraphMasterChefV2Response = { masterChef: MasterChef };
@@ -39,7 +63,6 @@ class FarmService {
   masterchefv3Client = new GraphQLClient(GRAPH_MASTERCHEFV3_URI, { headers: {} });
 
   private joinFarms(farms1: Array<GraphQLFarmV2>, farms2: Array<GraphQLFarmV3>): Array<GraphQLFarmV2 | GraphQLFarmV3> {
-    // TODO: We need to build our own types at some point and convert from graphql types to ours.
     const allFarms: Array<GraphQLFarmV3 | GraphQLFarmV2> = farms1.concat(farms2 as unknown as GraphQLFarmV2);
 
     const allFarmsWithTimestamp = allFarms.map(farm => {
@@ -60,7 +83,7 @@ class FarmService {
    * @param limit
    * @returns farms from masterchef v2 and v3.
    */
-  public async getFarms(offset: number, limit: number): Promise<FarmsPage> {
+  public async getFarmsFromTheGraph(offset: number, limit: number): Promise<FarmsPage> {
     const v2farms = await this.masterchefv2Client.request<GraphFarmsV2Response>(farmsQuery);
     const v3farms = await this.masterchefv3Client.request<GraphFarmsV3Response>(farmsQuery);
     const allFarms = this.joinFarms(v2farms.pools, v3farms.pools);
@@ -79,40 +102,9 @@ class FarmService {
     return {
       offset,
       limit,
-      farms: allFarms.slice(offset, limit).map(farm => this.enrichFarm(farm, joePrice, poolsResponse.pairs, masterchefv2Response.masterChef)),
-    };
-  }
-
-  private enrichFarm(farm: GraphQLFarmV2 | GraphQLFarmV3, joePriceUSD: number, pools: Array<Pair>, masterChef: MasterChef): Farm {
-    const SECONDS_PER_YEAR = 86400 * 365;
-    const pool = pools.find(p => p.id === farm.pair);
-
-    // If this farm doesn't have a pool, return the farm without enrichment
-    if (!pool) {
-      return {
-        id: farm.id,
-        pair: farm.pair,
-        tvl: null,
-        apr: null,
-        apy: null,
-      };
-    }
-
-    const liquidity = parseFloat(pool.reserveUSD); // Liquidity == Pool TVL
-
-    const { totalAllocPoint, joePerSec } = masterChef;
-    const joePerSecNumber = new BN(joePerSec).div(BN_1E18).toNumber();
-
-    const tvl = (parseFloat(farm.jlpBalance) * liquidity) / parseFloat(pool.totalSupply);
-
-    const farmApr = ((((joePerSecNumber * SECONDS_PER_YEAR) / tvl) * parseFloat(farm.allocPoint)) / parseFloat(totalAllocPoint) / 2) * joePriceUSD;
-
-    return {
-      id: farm.id,
-      pair: farm.pair,
-      tvl,
-      apy: Utils.calculatePoolAPY(farmApr),
-      apr: farmApr,
+      farms: allFarms
+        .slice(offset, limit)
+        .map(farm => this.createFarmFromTheGraph(farm, joePrice, poolsResponse.pairs, masterchefv2Response.masterChef)),
     };
   }
 
@@ -122,7 +114,7 @@ class FarmService {
    * @param farmId farm identifier
    * @returns a farm content
    */
-  public async getFarm(farmId: string): Promise<Farm> {
+  public async getFarmFromTheGraph(farmId: string): Promise<Farm> {
     const [farmAddress, masterchefAddress] = farmId.split('-');
     let farmResponse: GraphFarmsV2Response | GraphFarmsV3Response;
 
@@ -159,9 +151,109 @@ class FarmService {
       pairs: [farm.pair.toLowerCase()],
     });
 
-    const enrichedFarm = this.enrichFarm(farm, joePrice, poolResponse.pairs, masterchefv2Response.masterChef);
+    const enrichedFarm = this.createFarmFromTheGraph(farm, joePrice, poolResponse.pairs, masterchefv2Response.masterChef);
 
     return enrichedFarm;
+  }
+
+  private createFarmFromTheGraph(farm: GraphQLFarmV2 | GraphQLFarmV3, joePriceUSD: number, pools: Array<Pair>, masterChef: MasterChef): Farm {
+    const SECONDS_PER_YEAR = 86400 * 365;
+    const pool = pools.find(p => p.id === farm.pair);
+
+    // If this farm doesn't have a pool, return the farm without enrichment
+    if (!pool) {
+      return {
+        id: farm.id,
+        pair: farm.pair,
+        masterchef: farm.owner.id,
+        tvl: null,
+        apr: null,
+        apy: null,
+        token0Name: null,
+        token0: null,
+        token1Name: null,
+        token1: null,
+      };
+    }
+
+    const liquidity = parseFloat(pool.reserveUSD); // Liquidity == Pool TVL
+
+    const { totalAllocPoint, joePerSec } = masterChef;
+    const joePerSecNumber = new BN(joePerSec).div(BN_1E18).toNumber();
+
+    const tvl = (parseFloat(farm.jlpBalance) * liquidity) / parseFloat(pool.totalSupply);
+
+    const farmApr = ((((joePerSecNumber * SECONDS_PER_YEAR) / tvl) * parseFloat(farm.allocPoint)) / parseFloat(totalAllocPoint) / 2) * joePriceUSD;
+
+    return {
+      id: farm.id,
+      pair: farm.pair,
+      masterchef: farm.owner.id,
+      tvl,
+      apy: Utils.calculatePoolAPY(farmApr),
+      apr: farmApr,
+      token0Name: pool.token0.symbol,
+      token0: pool.token0.id,
+      token1Name: pool.token1.symbol,
+      token1: pool.token1.id,
+    };
+  }
+
+  private createFarmFromYieldMonitor(farm: YieldMonitorFarm): Farm {
+    // YieldMonitor returns APY as percentage.
+    const apy = parseFloat(farm.apy) / 100;
+    const tvl = parseFloat(farm.tvl);
+    console.log(apy, tvl);
+
+    return {
+      id: farm.poolNumber,
+      pair: farm.lpAddress,
+      masterchef: MASTERCHEFV2_ADDRESS,
+      token0Name: farm.symbol0Name,
+      token0: farm.symbol0address,
+      token1Name: farm.symbol1Name,
+      token1: farm.symbol1address,
+      tvl,
+      apy,
+      apr: Utils.calculatePoolAPRFromAPY(apy),
+    };
+  }
+
+  // TODO: convert the offset and limit.
+  public async getFarmsFromYieldMonitor(offset: number, limit: number): Promise<FarmsPage> {
+    const page = offset || 1;
+    const queryParams = new URLSearchParams({
+      partner: 'trader-jose',
+      dexName: 'traderjoe',
+      page: page.toString(),
+      limit: limit.toString(),
+      order: 'liquidity',
+    });
+
+    const farmsResponse = await fetch(`${YIELD_MONITOR_BASE_URI}/symbol/getFarmsForDex?` + queryParams.toString());
+
+    const farms = (await farmsResponse.json()) as Array<YieldMonitorFarm>;
+
+    return {
+      offset,
+      limit,
+      farms: farms.map(farm => this.createFarmFromYieldMonitor(farm)),
+    };
+  }
+
+  public async getFarmFromYieldMonitor(farmId: string): Promise<Farm> {
+    // masterchefAddress should always be the same as MASTERCHEFV2_ADDRESS. No V3 in YieldMonitor yet.
+    const [farmNumber, masterchefAddress] = farmId.split('-');
+    const farmResponse = await fetch(`${YIELD_MONITOR_BASE_URI}/farm/getFarmDetails/${masterchefAddress}/${farmNumber}`);
+
+    const farm = (await farmResponse.json()) as YieldMonitorFarm;
+
+    // YieldMonitor returns a 200 with a string when a farm is not found.
+    if (typeof farm === 'string') {
+      throw new createError.NotFound('Farm not found');
+    }
+
+    return this.createFarmFromYieldMonitor(farm);
   }
 }
 

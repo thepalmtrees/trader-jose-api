@@ -153,7 +153,22 @@ components:
             "id": {
                 "type": "string"
             },
+            "masterchef": {
+                "type": "string"
+            },
             "pair": {
+                "type": "string"
+            },
+            "token0": {
+                "type": "string"
+            },
+            "token0Name": {
+                "type": "string"
+            },
+            "token1": {
+                "type": "string"
+            },
+            "token1Name": {
                 "type": "string"
             },
             "tvl": {

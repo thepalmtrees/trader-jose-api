@@ -36,11 +36,15 @@ export type PoolsPage = {
   pools: Array<Pool>;
 };
 
-// TODO: We need to add more fields to return. A user cannot identify a farm just by id or pair.
-// Ideally it would need the LP token name and logo.
 export type Farm = {
   id: string;
   pair: string;
+  masterchef: string;
+  token0Name: string;
+  token0: string;
+  token1Name: string;
+  token1: string;
+
   tvl: number | null;
   apy: number | null;
   apr: number | null;
