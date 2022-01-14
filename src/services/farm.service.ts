@@ -203,11 +203,11 @@ class FarmService {
     // YieldMonitor returns APY as percentage.
     const apy = parseFloat(farm.apy) / 100;
     const tvl = parseFloat(farm.tvl);
-    console.log(apy, tvl);
 
     return {
       id: farm.poolNumber,
       pair: farm.lpAddress,
+      // This is because YieldMonitor only handles masterchefv2 farms for now.
       masterchef: MASTERCHEFV2_ADDRESS,
       token0Name: farm.symbol0Name,
       token0: farm.symbol0address,
