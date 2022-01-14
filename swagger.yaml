@@ -93,13 +93,13 @@ components:
             "token0": {
                 "type": "string"
             },
-            "token0_symbol": {
+            "token0Symbol": {
                 "type": "string"
             },
             "token1": {
                 "type": "string"
             },
-            "token1_symbol": {
+            "token1Symbol": {
                 "type": "string"
             },
             "tvl": {
@@ -115,9 +115,9 @@ components:
             "apy",
             "fees24hs",
             "token0",
-            "token0_symbol",
+            "token0Symbol",
             "token1",
-            "token1_symbol",
+            "token1Symbol",
             "tvl",
             "volume24hs"
         ],

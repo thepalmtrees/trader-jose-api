@@ -15,14 +15,12 @@ export type StakeMetrics = {
   apr7d: number;
 };
 
-// TODO: We need to add name and symbol of each token.
-// And if possible their logos
 export type Pool = {
   address: string;
   token0: string;
-  token0_symbol: string;
+  token0Symbol: string;
   token1: string;
-  token1_symbol: string;
+  token1Symbol: string;
   volume24hs: number;
   tvl: number;
   apr: number;
