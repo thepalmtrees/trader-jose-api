@@ -25,12 +25,13 @@ class PoolService {
     const poolsResponse = pools.map(pool => {
       const volume24h = pool.get('volume_24h_quote');
       const tvl = pool.get('total_liquidity_quote');
-      return this.createPool(
+
+      return this.createPoolFromCovalent(
         pool.get('exchange'),
         pool.get('token_0').contract_address,
-        pool.get('token_0').contract_name,
+        pool.get('token_0').contract_ticker_symbol,
         pool.get('token_1').contract_address,
-        pool.get('token_1').contract_name,
+        pool.get('token_1').contract_ticker_symbol,
         volume24h,
         tvl,
       );
@@ -68,18 +69,19 @@ class PoolService {
 
     const volume24h = pool.volume_24h_quote;
     const tvl = pool.total_liquidity_quote;
-    return this.createPool(
+
+    return this.createPoolFromCovalent(
       pool.exchange,
       pool.token_0.contract_address,
-      pool.token_0.contract_name,
+      pool.token_0.contract_ticker_symbol,
       pool.token_1.contract_address,
-      pool.token_1.contract_name,
+      pool.token_1.contract_ticker_symbol,
       volume24h,
       tvl,
     );
   }
 
-  private createPool(
+  private createPoolFromCovalent(
     exchange: string,
     token0: string,
     token0Symbol: string,
@@ -93,14 +95,39 @@ class PoolService {
     return {
       address: exchange,
       token0: token0,
-      token0_symbol: token0Symbol,
+      token0Symbol: token0Symbol,
       token1: token1,
-      token1_symbol: token1Symbol,
+      token1Symbol: token1Symbol,
       volume24hs: volume24h,
       tvl: tvl,
       apr: apr,
       apy: Utils.calculatePoolAPY(apr),
       fees24hs: fees24hs,
+    };
+  }
+
+  private createPoolFromTheGraph(pool: Pair): Pool {
+    const { hourData, reserveUSD } = pool;
+
+    const tvl = parseFloat(reserveUSD);
+
+    const volume24hs = this.getVolume24hs(hourData);
+    const fees24hs = Utils.calculatePoolFees24h(volume24hs);
+
+    const apr = Utils.calculatePoolAPR(fees24hs, tvl);
+    const apy = Utils.calculatePoolAPY(apr);
+
+    return {
+      address: pool.id,
+      token0: pool.token0.id,
+      token0Symbol: pool.token0.symbol,
+      token1: pool.token1.id,
+      token1Symbol: pool.token1.symbol,
+      volume24hs,
+      tvl,
+      apr,
+      apy,
+      fees24hs,
     };
   }
 
@@ -113,7 +140,7 @@ class PoolService {
     return {
       offset,
       limit,
-      pools: pairsData.pairs.map(x => this.enrichPool(x)).sort((a, b) => b.tvl - a.tvl),
+      pools: pairsData.pairs.map(x => this.createPoolFromTheGraph(x)).sort((a, b) => b.tvl - a.tvl),
     };
   }
 
@@ -139,33 +166,7 @@ class PoolService {
 
     const pool = pairData.pairs[0];
 
-    return this.enrichPool(pool);
-  }
-
-  private enrichPool(pool: Pair): Pool {
-    const { hourData, reserveUSD } = pool;
-
-    const tvl = parseFloat(reserveUSD);
-
-    const volume24hs = this.getVolume24hs(hourData);
-    const fees24hs = Utils.calculatePoolFees24h(volume24hs);
-
-    const apr = Utils.calculatePoolAPR(fees24hs, tvl);
-    const apy = Utils.calculatePoolAPY(apr);
-
-    return {
-      address: pool.id,
-      token0: pool.token0.id,
-      // TODO: thegraph brings name and symbol but covalent doesn't.
-      token0_symbol: pool.token0.name,
-      token1: pool.token1.id,
-      token1_symbol: pool.token1.name,
-      volume24hs,
-      tvl,
-      apr,
-      apy,
-      fees24hs,
-    };
+    return this.createPoolFromTheGraph(pool);
   }
 
   private getVolume24hs(last24hours: PairHourData[]): number {
