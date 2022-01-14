@@ -22,6 +22,12 @@ class TraderJoeRouter implements Routes {
     this.router.get('/pools/:token1/:token2', this.poolController.getPool);
     this.router.get('/farms', this.farmController.getFarms);
     this.router.get('/farms/:farmId', this.farmController.getFarm);
+
+    this.router.get('/thegraph/pools', this.poolController.getPoolsFromTheGraph);
+    this.router.get('/thegraph/pools/:token1/:token2', this.poolController.getPoolFromTheGraph);
+    this.router.get('/thegraph/farms', this.farmController.getFarmsFromTheGraph);
+    this.router.get('/thegraph/farms/:masterchef/:farmId', this.farmController.getFarmFromTheGraph);
+
     this.router.get('/stake', this.stakeController.getStakeMetrics);
   }
 }

@@ -108,23 +108,17 @@ class FarmService {
     };
   }
 
-  /**
-   * For now, we allow only farm ids with this convention:
-   * farmId = "0xPairAddress-0xMasterchefAddress".
-   * @param farmId farm identifier
-   * @returns a farm content
-   */
-  public async getFarmFromTheGraph(farmId: string): Promise<Farm> {
-    const [farmAddress, masterchefAddress] = farmId.split('-');
+  public async getFarmFromTheGraph(farmId: string, masterchef: string): Promise<Farm> {
     let farmResponse: GraphFarmsV2Response | GraphFarmsV3Response;
+    console.log(masterchef);
 
-    if (masterchefAddress?.toLowerCase() === MASTERCHEFV2_ADDRESS) {
+    if (masterchef?.toLowerCase() === MASTERCHEFV2_ADDRESS) {
       farmResponse = await this.masterchefv2Client.request<GraphFarmsV2Response>(farmQuery, {
-        pair: farmAddress,
+        pair: farmId,
       });
-    } else if (masterchefAddress?.toLowerCase() === MASTERCHEFV3_ADDRESS) {
+    } else if (masterchef?.toLowerCase() === MASTERCHEFV3_ADDRESS) {
       farmResponse = await this.masterchefv3Client.request<GraphFarmsV3Response>(farmQuery, {
-        pair: farmAddress,
+        pair: farmId,
       });
     } else {
       throw new createError.BadRequest('Invalid Farm id');
@@ -242,9 +236,7 @@ class FarmService {
   }
 
   public async getFarmFromYieldMonitor(farmId: string): Promise<Farm> {
-    // masterchefAddress should always be the same as MASTERCHEFV2_ADDRESS. No V3 in YieldMonitor yet.
-    const [farmNumber, masterchefAddress] = farmId.split('-');
-    const farmResponse = await fetch(`${YIELD_MONITOR_BASE_URI}/farm/getFarmDetails/${masterchefAddress}/${farmNumber}`);
+    const farmResponse = await fetch(`${YIELD_MONITOR_BASE_URI}/farm/getFarmDetails/${MASTERCHEFV2_ADDRESS}/${farmId}`);
 
     const farm = (await farmResponse.json()) as YieldMonitorFarm;
 
