@@ -19,6 +19,10 @@ class Utils {
     return (fees24hs * 365) / tvl;
   }
 
+  public static calculatePoolAPRFromAPY(apy: number): number {
+    return 365 * (Math.pow(apy + 1, 1 / 365) - 1);
+  }
+
   public static calculatePoolAPY(apr: number): number {
     return Math.pow(1 + apr / 365, 365) - 1;
   }
