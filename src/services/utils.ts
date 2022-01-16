@@ -16,6 +16,9 @@ class Utils {
   }
 
   public static calculatePoolAPR(fees24hs: number, tvl: number): number {
+    if (tvl === 0) {
+      return 0;
+    }
     return (fees24hs * 365) / tvl;
   }
 
