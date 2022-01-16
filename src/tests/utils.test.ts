@@ -25,7 +25,7 @@ describe('Testing Utils', () => {
     expect(Utils.calculatePoolAPR(100, 0)).toBe(0);
   });
 
-  test('For a pool, given APY is 10, its APR is 0', () => {
+  test('For a pool, given APY is 10, its APR is 2.4057891274819476', () => {
     expect(Utils.calculatePoolAPRFromAPY(10)).toBe(2.4057891274819476);
   });
 
