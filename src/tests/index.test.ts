@@ -4,7 +4,6 @@ import V1Route from '@routes/v1/v1.route';
 
 jest.mock('moralis/node');
 
-jest.mock('@/services/legacyjoe.service');
 jest.mock('@/services/legacyjoe.service', () => {
   return jest.fn().mockImplementation(() => {
     return {
@@ -25,7 +24,6 @@ jest.mock('@/services/legacyjoe.service', () => {
   });
 });
 
-jest.mock('@/services/price.service');
 jest.mock('@/services/price.service', () => {
   return jest.fn().mockImplementation(() => {
     return {
