@@ -65,14 +65,7 @@ class FarmService {
   private joinFarms(farms1: Array<GraphQLFarmV2>, farms2: Array<GraphQLFarmV3>): Array<GraphQLFarmV2 | GraphQLFarmV3> {
     const allFarms: Array<GraphQLFarmV3 | GraphQLFarmV2> = farms1.concat(farms2 as unknown as GraphQLFarmV2);
 
-    const allFarmsWithTimestamp = allFarms.map(farm => {
-      return {
-        innerFarm: farm,
-        timestamp: new Date(parseInt(farm.timestamp) * 100),
-      };
-    });
-
-    return allFarmsWithTimestamp.sort((farmOne, farmTwo) => farmOne.timestamp.getTime() - farmTwo.timestamp.getTime()).map(farm => farm.innerFarm);
+    return allFarms;
   }
 
   /**
@@ -99,12 +92,22 @@ class FarmService {
       pairs: allFarms.map(f => f.pair.toLowerCase()),
     });
 
+    const poolsMap = new Map<string, Pair>();
+
+    // To have constant time access later.
+    poolsResponse.pairs.forEach(p => {
+      poolsMap.set(p.id, p);
+    });
+
     return {
       offset,
       limit,
       farms: allFarms
-        .slice(offset, limit)
-        .map(farm => this.createFarmFromTheGraph(farm, joePrice, poolsResponse.pairs, masterchefv2Response.masterChef)),
+        .map(farm => this.createFarmFromTheGraph(farm, joePrice, poolsMap, masterchefv2Response.masterChef))
+        .sort((a, b) => (b.tvl || 0) - (a.tvl || 0))
+        // After all the calculation and sorting we do the slice here.
+        // Not great, performance wise but We don't have other way of sorting before this point.
+        .slice(offset, limit),
     };
   }
 
@@ -144,14 +147,24 @@ class FarmService {
       pairs: [farm.pair.toLowerCase()],
     });
 
-    const enrichedFarm = this.createFarmFromTheGraph(farm, joePrice, poolResponse.pairs, masterchefv2Response.masterChef);
+    const poolsMap = new Map<string, Pair>();
+    poolResponse.pairs.forEach(p => {
+      poolsMap.set(p.id, p);
+    });
+
+    const enrichedFarm = this.createFarmFromTheGraph(farm, joePrice, poolsMap, masterchefv2Response.masterChef);
 
     return enrichedFarm;
   }
 
-  private createFarmFromTheGraph(farm: GraphQLFarmV2 | GraphQLFarmV3, joePriceUSD: number, pools: Array<Pair>, masterChef: MasterChef): Farm {
+  private createFarmFromTheGraph(
+    farm: GraphQLFarmV2 | GraphQLFarmV3,
+    joePriceUSD: number,
+    poolsMap: Map<string, Pair>,
+    masterChef: MasterChef,
+  ): Farm {
     const SECONDS_PER_YEAR = 86400 * 365;
-    const pool = pools.find(p => p.id === farm.pair);
+    const pool = poolsMap.get(farm.pair);
 
     // If this farm doesn't have a pool, return the farm without enrichment
     if (!pool) {
