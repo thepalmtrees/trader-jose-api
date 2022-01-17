@@ -79,7 +79,7 @@ const mockedFarm2 = {
 const mockedFarms = {
   offset: 10,
   limit: 20,
-  pools: [mockedFarm1, mockedFarm2],
+  farms: [mockedFarm1, mockedFarm2],
 };
 
 jest.mock('@/services/farm.service', () => {
