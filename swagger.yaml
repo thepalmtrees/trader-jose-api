@@ -387,7 +387,7 @@ paths:
     get:
       tags:
         - Get all pools in Trader Joe
-      summary: Returns the pools of all Trader Joe
+      summary: Returns the pools of all Trader Joe through Covalent
       responses:
         '200':
           description: OK
@@ -424,7 +424,7 @@ paths:
             type: string
       tags:
         - Get a specific pool in Trader Joe
-      summary: Get a specific pool in Trader Joe
+      summary: Get a specific pool in Trader Joe through Covalent
       responses:
         '200':
           description: OK
@@ -436,7 +436,7 @@ paths:
     get:
       tags:
         - Get all farms in Trader Joe
-      summary: Returns the farms of all Trader Joe
+      summary: Returns the farms of all Trader Joe through YieldMonitor
       responses:
         '200':
           description: OK
@@ -444,18 +444,92 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FarmsPage'
-  /v2/farms/{farmId}:
+  /v2/farms/{farmNumber}:
     get:
       parameters:
-        - name: farmId
+        - name: farmNumber
           in: path
-          description: Dash separated string in the format of 'pairAddress-masterchefAddress'
+          description: Number of the farm.
           required: true
           schema:
             type: string
       tags:
         - Get a specific farm in Trader Joe
-      summary: Get a specific farm in Trader Joe
+      summary: Get a specific farm in Trader Joe through YieldMonitor
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Farm'
+  /v2/thegraph/pools:
+    get:
+      tags:
+        - Get all pools in Trader Joe
+      summary: Returns the pools of all Trader Joe through TheGraph
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PoolsPage'
+  /v2/thegraph/pools/{token1}/{token2}:
+    get:
+      parameters:
+        - name: token1
+          in: path
+          description: First token of the pair
+          required: true
+          schema:
+            type: string
+        - name: token2
+          in: path
+          description: Second token of the pair
+          required: true
+          schema:
+            type: string
+      tags:
+        - Get a specific pool in Trader Joe
+      summary: Get a specific pool in Trader Joe through TheGraph
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pool'
+  /v2/thegraph/farms:
+    get:
+      tags:
+        - Get all farms in Trader Joe
+      summary: Returns the farms of all Trader Joe through TheGraph
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FarmsPage'
+  /v2/thegraph/farms/{masterchef}/{farmAddress}:
+    get:
+      parameters:
+        - name: masterchef
+          in: path
+          description: Address of the masterchef version
+          required: true
+          schema:
+            type: string
+        - name: farmAddress
+          in: path
+          description: Address of the farm
+          required: true
+          schema:
+            type: string
+      tags:
+        - Get a specific farm in Trader Joe
+      summary: Get a specific farm in Trader Joe through TheGraph
       responses:
         '200':
           description: OK
