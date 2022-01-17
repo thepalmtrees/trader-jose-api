@@ -1,6 +1,6 @@
 # Trader Joe API
 
-A brand new Trader Joe API that aims to replace the [current trader joe API](https://github.com/traderjoe-xyz/joe-api). This was developed in the context of the Moralis + Avalanche hackathon between Dec 2020 and Jan 2021. 
+A brand new Trader Joe API that aims to replace the [current trader joe API](https://github.com/traderjoe-xyz/joe-api). This was developed in the context of the Moralis + Avalanche hackathon between Dec 2021 and Jan 2022. 
 
 This new API has been designed to be backwards compatible with the existing API (from now on, legacy API), and it contains a new set of endpoints that should be more future proof for integrations with partners or other systems of the Trader Joe ecosystem, such as the analytics dashboards. 
 
