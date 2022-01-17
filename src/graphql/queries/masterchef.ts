@@ -22,7 +22,7 @@ const farmFieldsFragment = gql`
 
 export const farmsQuery = gql`
   query farmsQuery($first: Int! = 500, $skip: Int! = 0, $orderBy: String! = "timestamp", $orderDirection: String! = "desc") {
-    pools(first: $first, skip: $skip, orderBy: $orderBy, orderDirection: $orderDirection) {
+    pools(first: $first, skip: $skip, orderBy: $orderBy, orderDirection: $orderDirection, where: { allocPoint_not: "0" }) {
       ...farmFields
     }
   }
