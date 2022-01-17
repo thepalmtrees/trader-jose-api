@@ -20,10 +20,10 @@ class FarmController {
 
   public getFarmFromTheGraph = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const farmId = req.params.farmId as string;
+      const farmAddress = req.params.farmAddress as string;
       const masterchef = req.params.masterchef as string;
 
-      const farm: Farm = await this.farmService.getFarmFromTheGraph(farmId, masterchef);
+      const farm: Farm = await this.farmService.getFarmFromTheGraph(farmAddress, masterchef);
 
       res.status(200).json(farm);
     } catch (error) {
@@ -46,9 +46,9 @@ class FarmController {
 
   public getFarm = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const farmId = req.params.farmId as string;
+      const farmNumber = req.params.farmNumber as string;
 
-      const farm: Farm = await this.farmService.getFarmFromYieldMonitor(farmId);
+      const farm: Farm = await this.farmService.getFarmFromYieldMonitor(farmNumber);
 
       res.status(200).json(farm);
     } catch (error) {

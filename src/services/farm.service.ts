@@ -108,20 +108,19 @@ class FarmService {
     };
   }
 
-  public async getFarmFromTheGraph(farmId: string, masterchef: string): Promise<Farm> {
+  public async getFarmFromTheGraph(farmAddress: string, masterchef: string): Promise<Farm> {
     let farmResponse: GraphFarmsV2Response | GraphFarmsV3Response;
-    console.log(masterchef);
 
     if (masterchef?.toLowerCase() === MASTERCHEFV2_ADDRESS) {
       farmResponse = await this.masterchefv2Client.request<GraphFarmsV2Response>(farmQuery, {
-        pair: farmId,
+        pair: farmAddress,
       });
     } else if (masterchef?.toLowerCase() === MASTERCHEFV3_ADDRESS) {
       farmResponse = await this.masterchefv3Client.request<GraphFarmsV3Response>(farmQuery, {
-        pair: farmId,
+        pair: farmAddress,
       });
     } else {
-      throw new createError.BadRequest('Invalid Farm id');
+      throw new createError.BadRequest('Invalid Masterchef address');
     }
 
     if (!farmResponse.pools || farmResponse.pools.length === 0) {
@@ -235,8 +234,8 @@ class FarmService {
     };
   }
 
-  public async getFarmFromYieldMonitor(farmId: string): Promise<Farm> {
-    const farmResponse = await fetch(`${YIELD_MONITOR_BASE_URI}/farm/getFarmDetails/${MASTERCHEFV2_ADDRESS}/${farmId}`);
+  public async getFarmFromYieldMonitor(farmNumber: string): Promise<Farm> {
+    const farmResponse = await fetch(`${YIELD_MONITOR_BASE_URI}/farm/getFarmDetails/${MASTERCHEFV2_ADDRESS}/${farmNumber}`);
 
     const farm = (await farmResponse.json()) as YieldMonitorFarm;
 

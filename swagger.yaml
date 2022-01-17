@@ -444,12 +444,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FarmsPage'
-  /v2/farms/{farmId}:
+  /v2/farms/{farmNumber}:
     get:
       parameters:
-        - name: farmId
+        - name: farmNumber
           in: path
-          description: Dash separated string in the format of 'pairAddress-masterchefAddress'
+          description: Number of the farm.
           required: true
           schema:
             type: string
@@ -512,7 +512,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FarmsPage'
-  /v2/thegraph/farms/{masterchef}/{farmId}:
+  /v2/thegraph/farms/{masterchef}/{farmAddress}:
     get:
       parameters:
         - name: masterchef
@@ -521,7 +521,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: farmId
+        - name: farmAddress
           in: path
           description: Address of the farm
           required: true
