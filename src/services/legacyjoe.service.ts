@@ -1,6 +1,5 @@
-import { JOE_TOKEN_ADDRESS, GRAPH_EXCHANGE_URI, BURN_ADDRESS, TEAM_TREASURY_WALLETS, BN_1E18, SUPPLY_BORROW_ADDRESS } from '../configs/index';
+import { JOE_TOKEN_ADDRESS, BURN_ADDRESS, TEAM_TREASURY_WALLETS, BN_1E18, SUPPLY_BORROW_ADDRESS } from '../configs/index';
 
-import { GraphQLClient } from 'graphql-request';
 import BN from 'bn.js';
 import Moralis from 'moralis/node';
 import TotalSupplyAndBorrowABI from '../abis/TotalSupplyAndBorrowABI.json';
@@ -17,8 +16,6 @@ type RunContractParams = {
 };
 
 class LegacyJoeService {
-  private exchangeClient = new GraphQLClient(GRAPH_EXCHANGE_URI, { headers: {} });
-
   private async getBalanceOf(address: string): Promise<string> {
     const balanceOfFn: RunContractParams = {
       chain: 'avalanche',
