@@ -43,8 +43,7 @@ class LendingService {
       const marketMetrics = await this.getLendingMarket(marketAddresses[i]);
       allMarketsMetrics.push(marketMetrics);
     }
-    console.log(marketAddresses.length);
-    return {};
+    return allMarketsMetrics;
   }
 
   public async getLendingMarket(oneMarket: string): Promise<object> {

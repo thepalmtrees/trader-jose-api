@@ -22,7 +22,7 @@ type RunContractParams = {
 };
 
 class PriceService {
-  private async getXJoePriceInAVAX(): Promise<number> {
+  private async getXJoePriceInAVAX(): Promise<string> {
     const xJoeTokenBalance = (await Moralis.Web3API.account.getTokenBalances({ chain: 'avalanche', address: XJOE_ADDRESS })).find(
       t => t.token_address.toUpperCase() === JOE_TOKEN_ADDRESS.toUpperCase(),
     ).balance;
@@ -40,7 +40,7 @@ class PriceService {
     const joePriceInAVAX = await this.getPriceAVAX(JOE_TOKEN_ADDRESS);
     const result = new BN(joePriceInAVAX.toString()).mul(ratio).div(BN_1E18);
 
-    return result.toNumber();
+    return result.toString();
   }
 
   public async getPriceAVAX(requestedTokenAddress: string): Promise<number> {
@@ -55,7 +55,7 @@ class PriceService {
       }
       if (tokenAddress === XJOE_ADDRESS) {
         const xJoePrice = await this.getXJoePriceInAVAX();
-        return xJoePrice;
+        return parseFloat(xJoePrice);
       }
       const options: TokenPriceRequestParams = {
         address: tokenAddress,
@@ -83,10 +83,9 @@ class PriceService {
     } else {
       const tokenAddress = Utils.resolveTokenAddress(requestedTokenAddress);
       if (tokenAddress === XJOE_ADDRESS) {
-        return new BN(await this.getXJoePriceInAVAX())
-          .mul(new BN(await this.getPriceUSD(WAVAX_ADDRESS)))
-          .div(BN_1E18)
-          .toNumber();
+        const xJoePriceInAvax = parseFloat(await this.getXJoePriceInAVAX()) / Math.pow(10, 18);
+        const avaxPriceInUsd = await this.getPriceUSD(WAVAX_ADDRESS);
+        return xJoePriceInAvax * avaxPriceInUsd;
       }
       const options: TokenPriceRequestParams = {
         address: tokenAddress,

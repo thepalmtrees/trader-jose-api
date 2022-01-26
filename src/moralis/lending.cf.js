@@ -24,76 +24,81 @@ Moralis.Cloud.job('syncLendingMetrics', async request => {
   for (let i = 0; i < marketAddresses.length; i++) {
     const oneMarket = marketAddresses[i];
     logger.info(`Getting market metrics for ${oneMarket}`);
-    const underlyingAddress = await getUnderlyingAddress(oneMarket);
+    try {
+      const underlyingAddress = await getUnderlyingAddress(oneMarket);
 
-    const symbol = await getUnderlyingSymbol(underlyingAddress);
+      const symbol = await getUnderlyingSymbol(underlyingAddress);
 
-    const httpResponse = await Moralis.Cloud.httpRequest({
-      url: `https://trader-joe-2-api.herokuapp.com/priceusd/${underlyingAddress}`,
-    });
-    const tokenPriceInUSD = parseFloat(httpResponse.text) / _1E18;
+      const httpResponse = await Moralis.Cloud.httpRequest({
+        url: `https://trader-joe-2-api.herokuapp.com/priceusd/${underlyingAddress}`,
+      });
+      const tokenPriceInUSD = parseFloat(httpResponse.text) / _1E18;
 
-    const underlyingDecimals = await getUnderlyingDecimals(underlyingAddress);
-    const _1Edecimals = Math.pow(10, parseInt(underlyingDecimals));
+      const underlyingDecimals = await getUnderlyingDecimals(underlyingAddress);
+      const _1Edecimals = Math.pow(10, parseInt(underlyingDecimals));
 
-    const exchangeRateStored = await getExchangeRateStored(oneMarket, _1Edecimals);
+      const exchangeRateStored = await getExchangeRateStored(oneMarket, _1Edecimals);
 
-    const totalSupply = await getTotalSupply(oneMarket);
+      const totalSupply = await getTotalSupply(oneMarket);
 
-    const deposits = (totalSupply / _1E18) * exchangeRateStored;
-    const depositsUSD = deposits * tokenPriceInUSD;
+      const deposits = (totalSupply / _1E18) * exchangeRateStored;
+      const depositsUSD = deposits * tokenPriceInUSD;
 
-    const totalReserves = await getTotalReserves(oneMarket);
-    const reservesUSD = (totalReserves / _1Edecimals) * tokenPriceInUSD;
+      const totalReserves = await getTotalReserves(oneMarket);
+      const reservesUSD = (totalReserves / _1Edecimals) * tokenPriceInUSD;
 
-    const cash = await getCash(oneMarket);
+      const cash = await getCash(oneMarket);
 
-    const totalBorrows = await getTotalBorrows(oneMarket);
-    const borrowsNative = totalBorrows / _1Edecimals;
-    const borrowsUSD = borrowsNative * tokenPriceInUSD;
+      const totalBorrows = await getTotalBorrows(oneMarket);
+      const borrowsNative = totalBorrows / _1Edecimals;
+      const borrowsUSD = borrowsNative * tokenPriceInUSD;
 
-    const reserveFactorMantissa = await getReserveFactorMantissa(oneMarket);
-    const reserveFactor = reserveFactorMantissa / _1Edecimals;
+      const reserveFactorMantissa = await getReserveFactorMantissa(oneMarket);
+      const reserveFactor = reserveFactorMantissa / _1Edecimals;
 
-    let maybeCollateralFactor = await getMarketCollateralFactor(oneMarket, _1Edecimals);
+      let maybeCollateralFactor = await getMarketCollateralFactor(oneMarket, _1Edecimals);
 
-    const borrowRatePerSecondBN = await getBorrowRatePerSecond(oneMarket);
+      const borrowRatePerSecondBN = await getBorrowRatePerSecond(oneMarket);
 
-    const borrowPerSecond = parseFloat(borrowRatePerSecondBN.toString()) / _1E18;
+      const borrowPerSecond = parseFloat(borrowRatePerSecondBN.toString()) / _1E18;
 
-    const borrowAPY = (Math.pow(borrowPerSecond * secondsPerDay + 1, daysPerYear) - 1) * 100;
+      const borrowAPY = (Math.pow(borrowPerSecond * secondsPerDay + 1, daysPerYear) - 1) * 100;
 
-    const supplyRatePerSecondBN = await getSupplyRatePerSecond(oneMarket);
+      const supplyRatePerSecondBN = await getSupplyRatePerSecond(oneMarket);
 
-    const supplyPerSecond = parseFloat(supplyRatePerSecondBN.toString()) / _1E18;
+      const supplyPerSecond = parseFloat(supplyRatePerSecondBN.toString()) / _1E18;
 
-    const supplyAPY = (Math.pow(supplyPerSecond * secondsPerDay + 1, daysPerYear) - 1) * 100;
+      const supplyAPY = (Math.pow(supplyPerSecond * secondsPerDay + 1, daysPerYear) - 1) * 100;
 
-    const utilizationRate = totalBorrows / (cash + totalBorrows - totalReserves);
-    const liquidityNative = (cash - totalReserves) / _1Edecimals;
-    const liquidityUSD = liquidityNative * tokenPriceInUSD;
+      const utilizationRate = totalBorrows / (cash + totalBorrows - totalReserves);
+      const liquidityNative = (cash - totalReserves) / _1Edecimals;
+      const liquidityUSD = liquidityNative * tokenPriceInUSD;
 
-    const marketMetrics = {
-      address: oneMarket.toLowerCase(),
-      deposits,
-      depositsUSD,
-      reservesUSD,
-      borrowsNative,
-      borrowsUSD,
-      liquidityNative,
-      liquidityUSD,
-      utilizationRate,
-      borrowAPY,
-      supplyAPY,
-      reserveFactor,
-      maybeCollateralFactor,
-      exchangeRateStored,
-      totalSupply,
-      symbol,
-      underlyingDecimals,
-    };
-    allMarketsMetrics.push(marketMetrics);
-    log.info(`Market ready ${oneMarket}`);
+      const marketMetrics = {
+        address: oneMarket.toLowerCase(),
+        deposits,
+        depositsUSD,
+        reservesUSD,
+        borrowsNative,
+        borrowsUSD,
+        liquidityNative,
+        liquidityUSD,
+        utilizationRate,
+        borrowAPY,
+        supplyAPY,
+        reserveFactor,
+        maybeCollateralFactor,
+        exchangeRateStored,
+        totalSupply,
+        symbol,
+        underlyingDecimals,
+      };
+      allMarketsMetrics.push(marketMetrics);
+      log.info(`Market ready ${oneMarket}`);
+    } catch (e) {
+      log.info(`Market ${oneMarket} failed `);
+      log.info(e);
+    }
   }
 
   const Market = Moralis.Object.extend('Market');
