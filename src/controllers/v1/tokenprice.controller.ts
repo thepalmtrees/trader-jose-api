@@ -8,7 +8,10 @@ class TokenPriceController {
     try {
       const tokenAddress = req.params.tokenAddress;
       const priceAVAX = await this.priceService.getPriceAVAX(tokenAddress);
-      res.status(200).setHeader('content-type', 'text/plain').send(priceAVAX);
+      res
+        .status(200)
+        .setHeader('content-type', 'text/plain')
+        .send((priceAVAX * Math.pow(10, 18)).toString());
     } catch (error) {
       next(error);
     }
@@ -18,7 +21,10 @@ class TokenPriceController {
     try {
       const tokenAddress = req.params.tokenAddress;
       const priceUSD = await this.priceService.getPriceUSD(tokenAddress);
-      res.status(200).setHeader('content-type', 'text/plain').send(priceUSD);
+      res
+        .status(200)
+        .setHeader('content-type', 'text/plain')
+        .send((priceUSD * Math.pow(10, 18)).toString());
     } catch (error) {
       next(error);
     }
