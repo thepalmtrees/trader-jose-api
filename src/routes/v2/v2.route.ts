@@ -3,6 +3,7 @@ import PoolController from '@/controllers/v2/pool.controller';
 import FarmController from '@/controllers/v2/farm.controller';
 import StakeController from '@/controllers/v2/stake.controller';
 import { Routes } from '@interfaces/routes.interface';
+import LendingController from '@/controllers/v1/lending.controller';
 
 class TraderJoeRouter implements Routes {
   public router = Router();
@@ -10,6 +11,7 @@ class TraderJoeRouter implements Routes {
   private poolController = new PoolController();
   private farmController = new FarmController();
   private stakeController = new StakeController();
+  private lendingController = new LendingController();
 
   constructor() {
     this.initializeRoutes();
@@ -27,6 +29,9 @@ class TraderJoeRouter implements Routes {
     this.router.get('/thegraph/pools/:token1/:token2', this.poolController.getPoolFromTheGraph);
     this.router.get('/thegraph/farms', this.farmController.getFarmsFromTheGraph);
     this.router.get('/thegraph/farms/:masterchef/:farmAddress', this.farmController.getFarmFromTheGraph);
+
+    this.router.get('/lending/markets', this.lendingController.getLendingMarkets);
+    this.router.get('/lending/markets/:marketAddress', this.lendingController.getLendingMarket);
 
     this.router.get('/stake', this.stakeController.getStakeMetrics);
   }

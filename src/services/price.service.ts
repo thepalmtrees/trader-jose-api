@@ -22,7 +22,7 @@ type RunContractParams = {
 };
 
 class PriceService {
-  private async getXJoePriceInAVAX(): Promise<string> {
+  private async getXJoePriceInAVAX(): Promise<number> {
     const xJoeTokenBalance = (await Moralis.Web3API.account.getTokenBalances({ chain: 'avalanche', address: XJOE_ADDRESS })).find(
       t => t.token_address.toUpperCase() === JOE_TOKEN_ADDRESS.toUpperCase(),
     ).balance;
@@ -37,20 +37,21 @@ class PriceService {
     const totalSupply = await Moralis.Web3API.native.runContractFunction(totalSupplyParams);
 
     const ratio = new BN(xJoeTokenBalance).mul(BN_1E18).div(new BN(totalSupply));
-    const result = new BN(await this.getPriceAVAX(JOE_TOKEN_ADDRESS)).mul(ratio).div(BN_1E18);
+    const joePriceInAVAX = await this.getPriceAVAX(JOE_TOKEN_ADDRESS);
+    const result = new BN(joePriceInAVAX.toString()).mul(ratio).div(BN_1E18);
 
-    return result.toString();
+    return result.toNumber();
   }
 
-  public async getPriceAVAX(requestedTokenAddress: string): Promise<string> {
+  public async getPriceAVAX(requestedTokenAddress: string): Promise<number> {
     if (!requestedTokenAddress) {
       // this is a bit silly as it should never happen, express should reject requests that come without address
       // but this is what the code looked like in the initial joe-api, so keeping to make sure we don't miss anything.
-      return '';
+      return 0;
     } else {
       const tokenAddress = Utils.resolveTokenAddress(requestedTokenAddress);
       if (tokenAddress === WAVAX_ADDRESS) {
-        return BN_1E18.toString();
+        return BN_1E18.toNumber();
       }
       if (tokenAddress === XJOE_ADDRESS) {
         const xJoePrice = await this.getXJoePriceInAVAX();
@@ -65,27 +66,27 @@ class PriceService {
         const price = await Moralis.Web3API.token.getTokenPrice(options);
         logger.info(`For address ${tokenAddress} got price from ${price.exchangeName}`);
         if (price.nativePrice?.symbol !== 'AVAX') {
-          return `Unable to get price in AVAX for ${tokenAddress}`;
+          throw new Error(`Unable to get price in AVAX for ${tokenAddress}`);
         }
-        return price.nativePrice?.value;
+        return parseFloat(price.nativePrice?.value);
       } catch (e) {
-        return `Error code {} ${e.code} - ${e.error}`;
+        throw new Error(`Error code {} ${e.code} - ${e.error}`);
       }
     }
   }
 
-  public async getPriceUSD(requestedTokenAddress: string): Promise<string> {
+  public async getPriceUSD(requestedTokenAddress: string): Promise<number> {
     if (!requestedTokenAddress) {
       // this is a bit silly as it should never happen, express should reject requests that come without address
       // but this is what the code looked like in the initial joe-api, so keeping to make sure we don't miss anything.
-      return '';
+      return 0;
     } else {
       const tokenAddress = Utils.resolveTokenAddress(requestedTokenAddress);
       if (tokenAddress === XJOE_ADDRESS) {
         return new BN(await this.getXJoePriceInAVAX())
           .mul(new BN(await this.getPriceUSD(WAVAX_ADDRESS)))
           .div(BN_1E18)
-          .toString();
+          .toNumber();
       }
       const options: TokenPriceRequestParams = {
         address: tokenAddress,
@@ -95,9 +96,9 @@ class PriceService {
       try {
         const price = await Moralis.Web3API.token.getTokenPrice(options);
         logger.info(`For address ${tokenAddress} got price from ${price.exchangeName}`);
-        return (price.usdPrice * Math.pow(10, 18)).toString();
+        return price.usdPrice;
       } catch (e) {
-        return `Error code {} ${e.code} - ${e.error}`;
+        throw new Error(`Error code {} ${e.code} - ${e.error}`);
       }
     }
   }

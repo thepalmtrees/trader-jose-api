@@ -114,7 +114,7 @@ describe('Testing v1/', () => {
     it('response statusCode 200', () => {
       const route = new V1Route();
       const app = new App([route]);
-      return request(app.getServer()).get('/priceavax/1').expect(200).expect('10');
+      return request(app.getServer()).get('/priceavax/1').expect(200).expect('10000000000000000000');
     });
   });
 
@@ -122,7 +122,7 @@ describe('Testing v1/', () => {
     it('response statusCode 200', () => {
       const route = new V1Route();
       const app = new App([route]);
-      return request(app.getServer()).get('/priceusd/2').expect(200).expect('20');
+      return request(app.getServer()).get('/priceusd/2').expect(200).expect('20000000000000000000');
     });
   });
 
