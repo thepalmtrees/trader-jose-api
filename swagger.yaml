@@ -224,6 +224,82 @@ components:
         ],
         "type": "object"
       }
+    Market:
+      {
+        "properties": {
+            "address": {
+                "type": "string"
+            },
+            "deposits": {
+                "type": "number"
+            },
+            "depositsUSD": {
+                "type": "number"
+            },
+            "reservesUSD": {
+                "type": "number"
+            },
+            "borrowsNative": {
+                "type": "number"
+            },
+            "borrowsUSD": {
+                "type": "number"
+            },
+            "liquidityNative": {
+                "type": "number"
+            },
+            "liquidityUSD": {
+                "type": "number"
+            },
+            "utilizationRate": {
+                "type": "number"
+            },
+            "borrowAPY": {
+                "type": "number"
+            },
+            "supplyAPY": {
+                "type": "number"
+            },
+            "reserveFactor": {
+                "type": "number"
+            },
+            "maybeCollateralFactor": {
+                "type": "number"
+            },
+            "exchangeRateStored": {
+                "type": "number"
+            },
+            "totalSupply": {
+                "type": "number"
+            },
+            "symbol": {
+                "type": "string"
+            },
+            "underlyingDecimals": {
+                "type": "number"
+            },
+        },
+        "required": [
+            "address",
+            "apr",
+            "apy",
+            "fees24hs",
+            "token0",
+            "token0Symbol",
+            "token1",
+            "token1Symbol",
+            "tvl",
+            "volume24hs"
+        ],
+        "type": "object"
+      }
+    Markets:
+      {
+        "items": {
+                  "$ref": "#/components/schemas/Market"
+                },
+        "type": "array"
+      }
 paths:
   /status:
     get:
@@ -549,3 +625,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StakeMetrics'
+  /v2/lending/markets:
+    get:
+      tags:
+        - Get lending metrics in Trader Joe
+      summary: Get lending metrics in Trader Joe
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Markets'
+  /v2/lending/markets/{marketAddress}:
+    get:
+      parameters:
+        - name: marketAddress
+          in: path
+          description: Address of the market
+          required: true
+          schema:
+            type: string
+      tags:
+        - Get lending metrics for a specific market in Trader Joe
+      summary: Get lending metrics for a specific market in Trader Joe
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Market'
