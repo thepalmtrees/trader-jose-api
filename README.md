@@ -35,7 +35,11 @@ To address this, we decided to cache the covalent data as is in our own data sto
 
 Note that this is a workaround to show that it is possible to get pools data from another data source than thegraph, and the desired state would be to just call Covalent instead. 
 
-![alt text](docs/cloud-function.png "Caching")
+![alt text](docs/cloud-function.png "Covalent Caching")
+
+ We managed to build the feature without any dependencies on thegraph, but unfortunately we started to get rate limited by Moralis when executing all the smart contracts calls that we needed. Even though this shouldn't happen, we didn't get a good answer within our time constraints (hackathon deadline), so we decided to follow the same approach when calculating lending markets metrics. The [cloud function for lending](src/moralis/lending.cf.js) fetches all markets, calculates their metrics and stores everything in the Moralis database. 
+
+ ![alt text](docs/lending-cloud-function.png "Lending Caching")
 
 ### API docs
 
