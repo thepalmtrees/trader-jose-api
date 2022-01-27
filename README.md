@@ -37,7 +37,8 @@ Note that this is a workaround to show that it is possible to get pools data fro
 
 ![alt text](docs/cloud-function.png "Covalent Caching")
 
- We managed to build the feature without any dependencies on thegraph, but unfortunately we started to get rate limited by Moralis when executing all the smart contracts calls that we needed. Even though this shouldn't happen, we didn't get a good answer within our time constraints (hackathon deadline), so we decided to follow the same approach when calculating lending markets metrics. The [cloud function for lending](src/moralis/lending.cf.js) fetches all markets, calculates their metrics and stores everything in the Moralis database. 
+### Lending Metrics
+We managed to build the feature without any dependencies on thegraph, but unfortunately we started to get rate limited by Moralis when executing all the smart contracts calls that we needed. Even though this shouldn't happen, we didn't get a good answer within our time constraints (hackathon deadline), so we decided to follow the same approach of the cloud function when calculating lending markets metrics. The [cloud function for lending](src/moralis/lending.cf.js) fetches all markets, calculates their metrics and stores everything in the Moralis database. 
 
  ![alt text](docs/lending-cloud-function.png "Lending Caching")
 
